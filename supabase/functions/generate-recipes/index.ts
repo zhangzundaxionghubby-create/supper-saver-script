@@ -28,9 +28,11 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const systemPrompt = `You are a professional meal planning assistant. Generate detailed, practical recipes.
+    const systemPrompt = `You are a professional meal planning assistant and nutritionist. Generate detailed, practical recipes with ACCURATE calorie calculations.
 
-IMPORTANT: Return ONLY valid JSON in this exact format, with no additional text before or after:
+IMPORTANT: Calculate calories based on the actual ingredients used. Consider typical portion sizes and caloric density of each ingredient. Be precise and realistic.
+
+Return ONLY valid JSON in this exact format, with no additional text before or after:
 {
   "recipes": [
     {
@@ -40,25 +42,33 @@ IMPORTANT: Return ONLY valid JSON in this exact format, with no additional text 
       "cookTime": "X minutes",
       "protein": number,
       "carbs": number,
+      "fat": number,
       "calories": number,
-      "ingredients": ["ingredient 1", "ingredient 2"]
+      "ingredients": ["quantity + ingredient (e.g., 200g chicken breast, 1 tbsp olive oil)"]
     }
   ]
 }
 
-DO NOT include cooking instructions or steps. Only generate the recipe name, basic info, and ingredients list.`;
+CRITICAL: Calculate the total calories by summing up the calories from each ingredient, then divide by servings. Include fat macros as they contribute 9 calories per gram.
+
+DO NOT include cooking instructions or steps. Only generate the recipe name, basic info, and ingredients list with quantities.`;
 
     const userPrompt = `Generate ${numberOfRecipes} diverse and varied recipes with the following requirements:
-- Protein per serving: ${protein}g
-- Carbohydrates per serving: ${carbs}g
-- Calories per serving: ${calories}
+- Protein per serving: approximately ${protein}g
+- Carbohydrates per serving: approximately ${carbs}g
+- Target calories per serving: approximately ${calories}
 - Dietary restrictions: ${dietaryRestrictions || 'None'}
 - Number of people: ${numberOfPeople}
 
+IMPORTANT CALORIE CALCULATION INSTRUCTIONS:
+1. List ALL ingredients with specific quantities (e.g., "200g chicken breast", "1 tbsp olive oil", "100g rice")
+2. Calculate calories based on standard nutritional values for each ingredient
+3. Sum up all calories and divide by the number of servings
+4. Ensure the calculation is realistic and matches the ingredients
+
 Generate a wide variety of recipes for different meal types (breakfast, lunch, dinner).
 Do NOT assign days or meal types - just generate the recipes.
-Do NOT include cooking instructions - only name, nutrition info, and ingredients.
-Ensure each recipe meets the nutritional requirements.
+Do NOT include cooking instructions - only name, nutrition info with accurate calories, and ingredients with quantities.
 Return ONLY the JSON object, no additional text.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

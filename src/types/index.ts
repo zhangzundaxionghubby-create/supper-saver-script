@@ -62,6 +62,17 @@ export interface MacrosSummary {
   meetsTarget: boolean;
 }
 
+export interface CookedMeal {
+  id: string;
+  name: string;
+  day: string;
+  mealType: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  cookedAt: string;
+}
+
 export interface PriceComparison {
   store: string;
   total: number;

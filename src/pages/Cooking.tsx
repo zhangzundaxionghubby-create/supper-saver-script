@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ChefHat, Loader2, Clock, Users, Flame } from 'lucide-react';
+import { ChefHat, Loader2, Clock, Users, Flame, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { saveCookedMeal, getCookedMeals } from '@/lib/storage';
+import { CookedMeal } from '@/types';
 
 interface Recipe {
   name: string;
@@ -32,6 +34,7 @@ const Cooking = () => {
   const [cookingSteps, setCookingSteps] = useState<CookingSteps | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [savedSteps, setSavedSteps] = useState<{ [key: string]: CookingSteps }>({});
+  const [cookedMeals, setCookedMeals] = useState<CookedMeal[]>([]);
 
   useEffect(() => {
     const storedRecipes = localStorage.getItem('weeklyPlanRecipes');
@@ -43,6 +46,8 @@ const Cooking = () => {
     if (storedSteps) {
       setSavedSteps(JSON.parse(storedSteps));
     }
+
+    setCookedMeals(getCookedMeals());
   }, []);
 
   const handleSelectRecipe = (recipe: Recipe) => {
@@ -111,6 +116,53 @@ const Cooking = () => {
     }
   };
 
+  const handleMarkAsCooked = () => {
+    if (!selectedRecipe) return;
+
+    const mealKey = `${selectedRecipe.name}-${selectedRecipe.day}-${selectedRecipe.mealType}`;
+    const isAlreadyCooked = cookedMeals.some(meal => 
+      meal.name === selectedRecipe.name && 
+      meal.day === selectedRecipe.day && 
+      meal.mealType === selectedRecipe.mealType
+    );
+
+    if (isAlreadyCooked) {
+      toast({
+        title: 'Already Marked',
+        description: 'This meal has already been marked as cooked.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const cookedMeal: CookedMeal = {
+      id: mealKey,
+      name: selectedRecipe.name,
+      day: selectedRecipe.day,
+      mealType: selectedRecipe.mealType,
+      calories: selectedRecipe.calories,
+      protein: selectedRecipe.protein,
+      carbs: selectedRecipe.carbs,
+      cookedAt: new Date().toISOString(),
+    };
+
+    saveCookedMeal(cookedMeal);
+    setCookedMeals(getCookedMeals());
+
+    toast({
+      title: 'Meal Marked as Cooked! 🎉',
+      description: `${selectedRecipe.name} has been added to your calorie tracker.`,
+    });
+  };
+
+  const isMealCooked = (recipe: Recipe) => {
+    return cookedMeals.some(meal => 
+      meal.name === recipe.name && 
+      meal.day === recipe.day && 
+      meal.mealType === recipe.mealType
+    );
+  };
+
   const groupedRecipes = recipes.reduce((acc, recipe) => {
     if (!acc[recipe.day]) {
       acc[recipe.day] = [];
@@ -172,6 +224,7 @@ const Cooking = () => {
                         const isSelected = selectedRecipe?.name === recipe.name && 
                                          selectedRecipe?.day === recipe.day && 
                                          selectedRecipe?.mealType === recipe.mealType;
+                        const isCooked = isMealCooked(recipe);
 
                         return (
                           <Card
@@ -189,11 +242,18 @@ const Cooking = () => {
                                     {recipe.mealType}
                                   </p>
                                 </div>
-                                {hasSavedSteps && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    Saved
-                                  </Badge>
-                                )}
+                                <div className="flex gap-1">
+                                  {hasSavedSteps && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      Saved
+                                    </Badge>
+                                  )}
+                                  {isCooked && (
+                                    <Badge variant="default" className="text-xs">
+                                      Cooked
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                             </CardContent>
                           </Card>
@@ -337,6 +397,32 @@ const Cooking = () => {
                         </CardContent>
                       </Card>
                     )}
+
+                    <Card className="border-primary/20">
+                      <CardContent className="py-8 text-center">
+                        <h3 className="text-lg font-semibold mb-2">Did you cook this meal?</h3>
+                        <p className="text-muted-foreground mb-6">
+                          Mark it as cooked to track your calories
+                        </p>
+                        <Button 
+                          onClick={handleMarkAsCooked} 
+                          size="lg"
+                          disabled={isMealCooked(selectedRecipe)}
+                        >
+                          {isMealCooked(selectedRecipe) ? (
+                            <>
+                              <CheckCircle2 className="mr-2 h-4 w-4" />
+                              Marked as Cooked
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="mr-2 h-4 w-4" />
+                              Mark as Cooked
+                            </>
+                          )}
+                        </Button>
+                      </CardContent>
+                    </Card>
                   </>
                 )}
               </div>
