@@ -28,7 +28,7 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const systemPrompt = `You are a professional meal planning assistant. Generate detailed, practical recipes for a weekly meal plan.
+    const systemPrompt = `You are a professional meal planning assistant. Generate detailed, practical recipes.
 
 IMPORTANT: Return ONLY valid JSON in this exact format, with no additional text before or after:
 {
@@ -42,22 +42,20 @@ IMPORTANT: Return ONLY valid JSON in this exact format, with no additional text 
       "carbs": number,
       "calories": number,
       "ingredients": ["ingredient 1", "ingredient 2"],
-      "instructions": ["step 1", "step 2"],
-      "day": "Monday",
-      "mealType": "Breakfast/Lunch/Dinner"
+      "instructions": ["step 1", "step 2"]
     }
   ]
 }`;
 
-    const userPrompt = `Generate ${numberOfRecipes} recipes for a weekly meal plan with the following requirements:
+    const userPrompt = `Generate ${numberOfRecipes} diverse and varied recipes with the following requirements:
 - Protein per serving: ${protein}g
 - Carbohydrates per serving: ${carbs}g
 - Calories per serving: ${calories}
 - Dietary restrictions: ${dietaryRestrictions || 'None'}
 - Number of people: ${numberOfPeople}
-- Meals per day: ${mealsPerDay}
 
-Please distribute the recipes across the week (Monday to Sunday) and meal types (Breakfast, Lunch, Dinner) based on the meals per day.
+Generate a wide variety of recipes for different meal types (breakfast, lunch, dinner).
+Do NOT assign days or meal types - just generate the recipes.
 Ensure each recipe is practical, detailed, and meets the nutritional requirements.
 Return ONLY the JSON object, no additional text.`;
 
