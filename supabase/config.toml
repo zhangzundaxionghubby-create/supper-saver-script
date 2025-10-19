@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.shopping-suggestions]
 verify_jwt = false
+
+[functions.generate-cooking-steps]
+verify_jwt = false

@@ -20,7 +20,6 @@ interface Recipe {
   carbs: number;
   calories: number;
   ingredients: string[];
-  instructions: string[];
 }
 
 interface AssignedRecipe extends Recipe {

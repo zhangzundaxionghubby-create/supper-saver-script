@@ -11,55 +11,43 @@ serve(async (req) => {
   }
 
   try {
-    const { 
-      protein, 
-      carbs, 
-      calories, 
-      dietaryRestrictions, 
-      numberOfRecipes, 
-      numberOfPeople, 
-      mealsPerDay 
-    } = await req.json();
+    const { recipeName, ingredients, servings, dietaryRestrictions } = await req.json();
 
-    console.log("Generating recipes with params:", { protein, carbs, calories, dietaryRestrictions, numberOfRecipes, numberOfPeople, mealsPerDay });
+    console.log("Generating cooking steps for:", recipeName);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const systemPrompt = `You are a professional meal planning assistant. Generate detailed, practical recipes.
+    const systemPrompt = `You are a professional chef instructor. Generate detailed, easy-to-follow cooking instructions.
 
-IMPORTANT: Return ONLY valid JSON in this exact format, with no additional text before or after:
+IMPORTANT: Return ONLY valid JSON in this exact format:
 {
-  "recipes": [
-    {
-      "name": "Recipe Name",
-      "servings": number,
-      "prepTime": "X minutes",
-      "cookTime": "X minutes",
-      "protein": number,
-      "carbs": number,
-      "calories": number,
-      "ingredients": ["ingredient 1", "ingredient 2"]
-    }
+  "instructions": [
+    "Step 1: Detailed instruction...",
+    "Step 2: Detailed instruction...",
+    "Step 3: Detailed instruction..."
+  ],
+  "cookingTips": [
+    "Tip 1: Helpful cooking tip...",
+    "Tip 2: Another useful tip..."
   ]
-}
+}`;
 
-DO NOT include cooking instructions or steps. Only generate the recipe name, basic info, and ingredients list.`;
+    const userPrompt = `Generate detailed cooking instructions for this recipe:
 
-    const userPrompt = `Generate ${numberOfRecipes} diverse and varied recipes with the following requirements:
-- Protein per serving: ${protein}g
-- Carbohydrates per serving: ${carbs}g
-- Calories per serving: ${calories}
-- Dietary restrictions: ${dietaryRestrictions || 'None'}
-- Number of people: ${numberOfPeople}
+Recipe Name: ${recipeName}
+Servings: ${servings}
+Ingredients: ${ingredients.join(', ')}
+${dietaryRestrictions ? `Dietary Restrictions: ${dietaryRestrictions}` : ''}
 
-Generate a wide variety of recipes for different meal types (breakfast, lunch, dinner).
-Do NOT assign days or meal types - just generate the recipes.
-Do NOT include cooking instructions - only name, nutrition info, and ingredients.
-Ensure each recipe meets the nutritional requirements.
-Return ONLY the JSON object, no additional text.`;
+Provide:
+1. Step-by-step cooking instructions (8-12 steps)
+2. 3-5 helpful cooking tips and techniques
+3. Make instructions clear and beginner-friendly
+
+Return ONLY the JSON object.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -102,35 +90,31 @@ Return ONLY the JSON object, no additional text.`;
     
     console.log("Raw AI response:", content);
 
-    // Extract JSON from the response
-    let recipes;
+    let result;
     try {
-      // Try to parse the entire response as JSON first
-      recipes = JSON.parse(content);
+      result = JSON.parse(content);
     } catch (e) {
-      // If that fails, try to extract JSON from markdown code blocks
       const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/);
       if (jsonMatch) {
-        recipes = JSON.parse(jsonMatch[1]);
+        result = JSON.parse(jsonMatch[1]);
       } else {
-        // Try to find JSON object in the text
         const jsonStart = content.indexOf('{');
         const jsonEnd = content.lastIndexOf('}');
         if (jsonStart !== -1 && jsonEnd !== -1) {
-          recipes = JSON.parse(content.substring(jsonStart, jsonEnd + 1));
+          result = JSON.parse(content.substring(jsonStart, jsonEnd + 1));
         } else {
           throw new Error("Could not extract JSON from AI response");
         }
       }
     }
 
-    console.log("Parsed recipes:", recipes);
+    console.log("Parsed cooking steps:", result);
 
-    return new Response(JSON.stringify(recipes), {
+    return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Error in generate-recipes function:", error);
+    console.error("Error in generate-cooking-steps function:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error occurred" }), 
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
