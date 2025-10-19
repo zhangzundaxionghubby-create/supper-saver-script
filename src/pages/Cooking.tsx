@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ChefHat, Loader2, Clock, Users, Flame, CheckCircle2, Trash2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ChefHat, Loader2, Clock, Users, Flame, CheckCircle2, Trash2, ShoppingBasket, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { saveCookedMeal, getCookedMeals } from '@/lib/storage';
 import { CookedMeal } from '@/types';
@@ -35,6 +37,8 @@ const Cooking = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [savedSteps, setSavedSteps] = useState<{ [key: string]: CookingSteps }>({});
   const [cookedMeals, setCookedMeals] = useState<CookedMeal[]>([]);
+  const [basketItems, setBasketItems] = useState<string[]>([]);
+  const [hasAllIngredients, setHasAllIngredients] = useState(false);
 
   useEffect(() => {
     const storedRecipes = localStorage.getItem('weeklyPlanRecipes');
@@ -48,10 +52,24 @@ const Cooking = () => {
     }
 
     setCookedMeals(getCookedMeals());
+    loadBasketItems();
   }, []);
+
+  const loadBasketItems = () => {
+    const storedIngredients = localStorage.getItem('shoppingIngredients');
+    const storedBasketIndices = localStorage.getItem('basketItems');
+
+    if (storedIngredients && storedBasketIndices) {
+      const allIngredients = JSON.parse(storedIngredients) as string[];
+      const basketIndices = JSON.parse(storedBasketIndices) as number[];
+      const items = basketIndices.map(index => allIngredients[index]).filter(Boolean);
+      setBasketItems(items);
+    }
+  };
 
   const handleSelectRecipe = (recipe: Recipe) => {
     setSelectedRecipe(recipe);
+    setHasAllIngredients(false);
     
     // Check if we already have saved steps for this recipe
     const savedKey = `${recipe.name}-${recipe.day}-${recipe.mealType}`;
@@ -60,6 +78,25 @@ const Cooking = () => {
     } else {
       setCookingSteps(null);
     }
+  };
+
+  const getMissingIngredients = (recipe: Recipe): string[] => {
+    if (!recipe) return [];
+    
+    const missing: string[] = [];
+    recipe.ingredients.forEach(ingredient => {
+      const ingredientName = ingredient.toLowerCase();
+      const hasIngredient = basketItems.some(item => 
+        item.toLowerCase().includes(ingredientName.split(' ').slice(-1)[0]) ||
+        ingredientName.includes(item.toLowerCase().split(' ').slice(-1)[0])
+      );
+      
+      if (!hasIngredient) {
+        missing.push(ingredient);
+      }
+    });
+    
+    return missing;
   };
 
   const handleGenerateSteps = async () => {
@@ -365,13 +402,67 @@ const Cooking = () => {
                     <div>
                       <h3 className="font-semibold mb-3">Ingredients</h3>
                       <ul className="grid gap-2">
-                        {selectedRecipe.ingredients.map((ingredient, index) => (
-                          <li key={index} className="flex items-start gap-2 text-sm">
-                            <span className="text-primary mt-1">•</span>
-                            <span>{ingredient}</span>
-                          </li>
-                        ))}
+                        {selectedRecipe.ingredients.map((ingredient, index) => {
+                          const isInBasket = basketItems.some(item => 
+                            item.toLowerCase().includes(ingredient.toLowerCase().split(' ').slice(-1)[0]) ||
+                            ingredient.toLowerCase().includes(item.toLowerCase().split(' ').slice(-1)[0])
+                          );
+                          return (
+                            <li key={index} className="flex items-start gap-2 text-sm">
+                              <span className={`mt-1 ${isInBasket ? 'text-green-500' : 'text-red-500'}`}>
+                                {isInBasket ? '✓' : '✗'}
+                              </span>
+                              <span className={!isInBasket ? 'text-red-500 font-medium' : ''}>{ingredient}</span>
+                            </li>
+                          );
+                        })}
                       </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Missing Ingredients Check */}
+                {(() => {
+                  const missingIngredients = getMissingIngredients(selectedRecipe);
+                  return missingIngredients.length > 0 ? (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        <p className="font-semibold mb-2">Missing Ingredients:</p>
+                        <ul className="list-disc list-inside space-y-1 text-sm">
+                          {missingIngredients.map((ingredient, index) => (
+                            <li key={index}>{ingredient}</li>
+                          ))}
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <Alert className="border-green-500 bg-green-50">
+                      <ShoppingBasket className="h-4 w-4 text-green-600" />
+                      <AlertDescription className="text-green-700 font-medium">
+                        All ingredients are in your basket!
+                      </AlertDescription>
+                    </Alert>
+                  );
+                })()}
+
+                {/* Confirmation Card */}
+                <Card className="border-primary/20">
+                  <CardContent className="py-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Checkbox 
+                          id="has-all-ingredients"
+                          checked={hasAllIngredients}
+                          onCheckedChange={(checked) => setHasAllIngredients(checked as boolean)}
+                        />
+                        <label 
+                          htmlFor="has-all-ingredients"
+                          className="text-sm font-medium cursor-pointer select-none"
+                        >
+                          I have all the ingredients and I'm ready to start cooking
+                        </label>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -385,7 +476,11 @@ const Cooking = () => {
                       <p className="text-muted-foreground mb-6">
                         Generate detailed step-by-step cooking instructions
                       </p>
-                      <Button onClick={handleGenerateSteps} size="lg" disabled={isGenerating}>
+                      <Button 
+                        onClick={handleGenerateSteps} 
+                        size="lg" 
+                        disabled={isGenerating || !hasAllIngredients}
+                      >
                         {isGenerating ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -398,6 +493,11 @@ const Cooking = () => {
                           </>
                         )}
                       </Button>
+                      {!hasAllIngredients && (
+                        <p className="text-xs text-muted-foreground mt-3">
+                          Please confirm you have all ingredients first
+                        </p>
+                      )}
                     </CardContent>
                   </Card>
                 ) : (
