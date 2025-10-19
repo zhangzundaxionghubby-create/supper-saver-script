@@ -47,10 +47,10 @@ const Recipe = () => {
   const [isParsingRecipe, setIsParsingRecipe] = useState(false);
 
   const [aiParams, setAiParams] = useState({
-    protein: '',
-    carbs: '',
-    calories: '',
-    dietaryRestrictions: '',
+    protein: '30',
+    carbs: '40',
+    calories: '500',
+    dietaryRestrictions: 'none',
     numberOfRecipes: '7',
     numberOfPeople: '2',
   });
