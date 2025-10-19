@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ChefHat, Sparkles, Calendar, ArrowRight } from 'lucide-react';
+import { Loader2, ChefHat, Sparkles, Calendar, ArrowRight, GripVertical } from 'lucide-react';
 
 interface Recipe {
   name: string;
@@ -38,6 +38,7 @@ const Recipe = () => {
   const [generatedRecipes, setGeneratedRecipes] = useState<Recipe[]>([]);
   const [assignedRecipes, setAssignedRecipes] = useState<AssignedRecipe[]>([]);
   const [showAssignment, setShowAssignment] = useState(false);
+  const [draggedRecipe, setDraggedRecipe] = useState<Recipe | null>(null);
 
   const [manualRecipe, setManualRecipe] = useState({
     name: '',
@@ -53,9 +54,8 @@ const Recipe = () => {
     carbs: '',
     calories: '',
     dietaryRestrictions: '',
-    numberOfRecipes: '21',
+    numberOfRecipes: '7',
     numberOfPeople: '2',
-    mealsPerDay: '3',
   });
 
   const handleManualSubmit = (e: React.FormEvent) => {
@@ -93,7 +93,6 @@ const Recipe = () => {
             dietaryRestrictions: aiParams.dietaryRestrictions,
             numberOfRecipes: parseInt(aiParams.numberOfRecipes),
             numberOfPeople: parseInt(aiParams.numberOfPeople),
-            mealsPerDay: parseInt(aiParams.mealsPerDay),
           }),
         }
       );
@@ -109,7 +108,7 @@ const Recipe = () => {
       
       toast({
         title: 'Recipes Generated!',
-        description: `Successfully created ${data.recipes.length} recipes. Now assign them to your weekly plan.`,
+        description: `Successfully created ${data.recipes.length} recipes. Drag them into your weekly plan!`,
       });
     } catch (error) {
       console.error('Error generating recipes:', error);
@@ -123,12 +122,22 @@ const Recipe = () => {
     }
   };
 
-  const handleAssignRecipe = (recipe: Recipe, day: string, mealType: string) => {
+  const handleDragStart = (recipe: Recipe) => {
+    setDraggedRecipe(recipe);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (day: string, mealType: string) => {
+    if (!draggedRecipe) return;
+
     const existingIndex = assignedRecipes.findIndex(
       r => r.day === day && r.mealType === mealType
     );
 
-    const newAssignment: AssignedRecipe = { ...recipe, day, mealType };
+    const newAssignment: AssignedRecipe = { ...draggedRecipe, day, mealType };
 
     if (existingIndex >= 0) {
       const updated = [...assignedRecipes];
@@ -139,8 +148,18 @@ const Recipe = () => {
     }
 
     toast({
-      title: 'Recipe Assigned',
-      description: `${recipe.name} assigned to ${day} ${mealType}`,
+      title: 'Recipe Assigned!',
+      description: `${draggedRecipe.name} → ${day} ${mealType}`,
+    });
+
+    setDraggedRecipe(null);
+  };
+
+  const handleRemoveAssignment = (day: string, mealType: string) => {
+    setAssignedRecipes(assignedRecipes.filter(r => !(r.day === day && r.mealType === mealType)));
+    toast({
+      title: 'Recipe Removed',
+      description: 'Recipe removed from your weekly plan.',
     });
   };
 
@@ -148,16 +167,13 @@ const Recipe = () => {
     if (assignedRecipes.length === 0) {
       toast({
         title: 'No Recipes Assigned',
-        description: 'Please assign at least one recipe to your weekly plan.',
+        description: 'Please drag at least one recipe to your weekly plan.',
         variant: 'destructive',
       });
       return;
     }
 
-    // Collect all ingredients from assigned recipes
     const allIngredients = assignedRecipes.flatMap(recipe => recipe.ingredients);
-    
-    // Store in localStorage to pass to shopping list page
     localStorage.setItem('weeklyPlanRecipes', JSON.stringify(assignedRecipes));
     localStorage.setItem('shoppingIngredients', JSON.stringify(allIngredients));
     
@@ -171,7 +187,7 @@ const Recipe = () => {
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">Weekly Recipe Planner</h1>
           <p className="text-muted-foreground">
-            Generate recipes with AI, assign them to your weekly plan, then create your shopping list
+            Generate recipes and drag them into your weekly calendar
           </p>
         </div>
 
@@ -193,7 +209,7 @@ const Recipe = () => {
                 <CardHeader>
                   <CardTitle>AI Recipe Generator</CardTitle>
                   <CardDescription>
-                    Set your nutritional goals and we'll generate a variety of recipes for you to choose from
+                    Generate as many or as few recipes as you want - even just 1 or 2!
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -270,16 +286,17 @@ const Recipe = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="recipes">Number of Recipes to Generate</Label>
+                        <Label htmlFor="recipes">Number of Recipes</Label>
                         <Input
                           id="recipes"
                           type="number"
-                          min="7"
+                          min="1"
                           max="50"
                           value={aiParams.numberOfRecipes}
                           onChange={(e) => setAiParams({ ...aiParams, numberOfRecipes: e.target.value })}
                           required
                         />
+                        <p className="text-xs text-muted-foreground">Generate 1 or more recipes</p>
                       </div>
                     </div>
 
@@ -395,9 +412,9 @@ const Recipe = () => {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold">Assign Recipes to Your Weekly Plan</h2>
+                <h2 className="text-2xl font-bold">Drag Recipes to Your Weekly Calendar</h2>
                 <p className="text-muted-foreground">
-                  Click on a recipe card to assign it to a specific day and meal
+                  Drag and drop recipes into any day and meal slot
                 </p>
               </div>
               <Button onClick={() => setShowAssignment(false)} variant="outline">
@@ -405,116 +422,110 @@ const Recipe = () => {
               </Button>
             </div>
 
-            {/* Weekly Plan Grid */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Your Weekly Plan
-                </CardTitle>
-                <CardDescription>
-                  {assignedRecipes.length} of 21 slots filled
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {DAYS.map(day => (
-                    <div key={day} className="border-b pb-4 last:border-0">
-                      <h3 className="font-semibold mb-2">{day}</h3>
-                      <div className="grid grid-cols-3 gap-2">
-                        {MEAL_TYPES.map(mealType => {
-                          const assigned = assignedRecipes.find(
-                            r => r.day === day && r.mealType === mealType
-                          );
-                          return (
-                            <div
-                              key={mealType}
-                              className="p-3 rounded-lg border bg-muted/30 min-h-[80px]"
-                            >
-                              <p className="text-xs text-muted-foreground mb-1">{mealType}</p>
-                              {assigned ? (
-                                <p className="text-sm font-medium">{assigned.name}</p>
-                              ) : (
-                                <p className="text-xs italic text-muted-foreground">Not assigned</p>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Available Recipes */}
-            <div>
-              <h3 className="text-xl font-bold mb-4">Available Recipes</h3>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {generatedRecipes.map((recipe, index) => (
-                  <Card key={index} className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <CardTitle className="text-lg">{recipe.name}</CardTitle>
-                      <CardDescription>
-                        Servings: {recipe.servings} | {recipe.prepTime} prep
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex gap-3 text-sm">
-                        <div><span className="font-semibold">Protein:</span> {recipe.protein}g</div>
-                        <div><span className="font-semibold">Carbs:</span> {recipe.carbs}g</div>
-                        <div><span className="font-semibold">Cal:</span> {recipe.calories}</div>
+            <div className="grid gap-6 lg:grid-cols-12">
+              {/* Weekly Calendar - Takes more space */}
+              <div className="lg:col-span-8">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Calendar className="h-5 w-5" />
+                      Your Weekly Plan
+                    </CardTitle>
+                    <CardDescription>
+                      {assignedRecipes.length} of 21 slots filled
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-1">
+                      {/* Header Row */}
+                      <div className="grid grid-cols-4 gap-2 mb-2">
+                        <div className="font-semibold text-sm"></div>
+                        {MEAL_TYPES.map(mealType => (
+                          <div key={mealType} className="font-semibold text-sm text-center">
+                            {mealType}
+                          </div>
+                        ))}
                       </div>
 
-                      <div className="space-y-2">
-                        <Label className="text-xs">Assign to:</Label>
-                        <div className="flex gap-2">
-                          <Select onValueChange={(day) => {
-                            const mealType = MEAL_TYPES[0];
-                            handleAssignRecipe(recipe, day, mealType);
-                          }}>
-                            <SelectTrigger className="flex-1">
-                              <SelectValue placeholder="Day" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {DAYS.map(day => (
-                                <SelectItem key={day} value={day}>{day}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Select onValueChange={(mealType) => {
-                            const day = DAYS[0];
-                            handleAssignRecipe(recipe, day, mealType);
-                          }}>
-                            <SelectTrigger className="flex-1">
-                              <SelectValue placeholder="Meal" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {MEAL_TYPES.map(meal => (
-                                <SelectItem key={meal} value={meal}>{meal}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                      {/* Day Rows */}
+                      {DAYS.map(day => (
+                        <div key={day} className="grid grid-cols-4 gap-2">
+                          <div className="font-medium text-sm py-2">{day.slice(0, 3)}</div>
+                          {MEAL_TYPES.map(mealType => {
+                            const assigned = assignedRecipes.find(
+                              r => r.day === day && r.mealType === mealType
+                            );
+                            return (
+                              <div
+                                key={mealType}
+                                onDragOver={handleDragOver}
+                                onDrop={() => handleDrop(day, mealType)}
+                                className={`min-h-[80px] p-2 rounded-lg border-2 border-dashed transition-all ${
+                                  assigned 
+                                    ? 'bg-primary/10 border-primary' 
+                                    : 'bg-muted/30 border-muted-foreground/20 hover:border-primary/50 hover:bg-muted/50'
+                                }`}
+                              >
+                                {assigned ? (
+                                  <div className="relative group">
+                                    <p className="text-xs font-medium line-clamp-2">{assigned.name}</p>
+                                    <p className="text-xs text-muted-foreground">{assigned.calories} cal</p>
+                                    <button
+                                      onClick={() => handleRemoveAssignment(day, mealType)}
+                                      className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 text-xs text-destructive"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <p className="text-xs italic text-muted-foreground text-center pt-4">
+                                    Drop here
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
-                      </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
 
-                      <details className="text-xs">
-                        <summary className="cursor-pointer font-medium mb-2">View Details</summary>
-                        <div className="space-y-2 mt-2">
-                          <div>
-                            <p className="font-semibold">Ingredients:</p>
-                            <ul className="list-disc list-inside">
-                              {recipe.ingredients.slice(0, 5).map((ing, i) => (
-                                <li key={i}>{ing}</li>
-                              ))}
-                              {recipe.ingredients.length > 5 && <li>...</li>}
-                            </ul>
+              {/* Available Recipes - Sidebar */}
+              <div className="lg:col-span-4">
+                <Card className="sticky top-4">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Available Recipes</CardTitle>
+                    <CardDescription>
+                      Drag these into your calendar
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                      {generatedRecipes.map((recipe, index) => (
+                        <div
+                          key={index}
+                          draggable
+                          onDragStart={() => handleDragStart(recipe)}
+                          className="p-3 rounded-lg border bg-card hover:bg-muted/50 cursor-grab active:cursor-grabbing transition-colors"
+                        >
+                          <div className="flex items-start gap-2">
+                            <GripVertical className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm line-clamp-2">{recipe.name}</p>
+                              <div className="flex gap-2 text-xs text-muted-foreground mt-1">
+                                <span>{recipe.protein}g protein</span>
+                                <span>•</span>
+                                <span>{recipe.calories} cal</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </details>
-                    </CardContent>
-                  </Card>
-                ))}
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
 
