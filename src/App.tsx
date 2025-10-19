@@ -8,7 +8,6 @@ import ShoppingList from "./pages/ShoppingList";
 import Basket from "./pages/Basket";
 import Cooking from "./pages/Cooking";
 import Calorie from "./pages/Calorie";
-import Leftovers from "./pages/Leftovers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,7 +25,6 @@ const App = () => (
           <Route path="/basket" element={<Basket />} />
           <Route path="/cooking" element={<Cooking />} />
           <Route path="/calorie" element={<Calorie />} />
-          <Route path="/leftovers" element={<Leftovers />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

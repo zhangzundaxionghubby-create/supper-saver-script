@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ChefHat, ShoppingCart, UtensilsCrossed, Flame, Target, RefreshCw } from 'lucide-react';
+import { ChefHat, ShoppingCart, UtensilsCrossed, Flame, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Navigation = () => {
@@ -11,7 +11,6 @@ const Navigation = () => {
     { path: '/basket', icon: UtensilsCrossed, label: 'Basket' },
     { path: '/cooking', icon: Flame, label: 'Cooking' },
     { path: '/calorie', icon: Target, label: 'Calorie' },
-    { path: '/leftovers', icon: RefreshCw, label: 'Leftovers' },
   ];
 
   return (
