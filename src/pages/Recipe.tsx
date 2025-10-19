@@ -41,12 +41,10 @@ const Recipe = () => {
 
   const [manualRecipe, setManualRecipe] = useState({
     name: '',
-    servings: '',
-    prepTime: '',
-    cookTime: '',
-    ingredients: '',
-    instructions: '',
+    details: '',
   });
+
+  const [isParsingRecipe, setIsParsingRecipe] = useState(false);
 
   const [aiParams, setAiParams] = useState({
     protein: '',
@@ -57,20 +55,66 @@ const Recipe = () => {
     numberOfPeople: '2',
   });
 
-  const handleManualSubmit = (e: React.FormEvent) => {
+  const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: 'Recipe Saved!',
-      description: `${manualRecipe.name} has been added to your collection.`,
-    });
-    setManualRecipe({
-      name: '',
-      servings: '',
-      prepTime: '',
-      cookTime: '',
-      ingredients: '',
-      instructions: '',
-    });
+    setIsParsingRecipe(true);
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-recipe`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            recipeName: manualRecipe.name,
+            recipeDetails: manualRecipe.details,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to parse recipe');
+      }
+
+      const parsedRecipe = await response.json();
+      
+      // Create a full recipe object
+      const newRecipe: Recipe = {
+        name: manualRecipe.name,
+        servings: parsedRecipe.servings,
+        prepTime: parsedRecipe.prepTime,
+        cookTime: parsedRecipe.cookTime,
+        protein: parsedRecipe.protein,
+        carbs: parsedRecipe.carbs,
+        calories: parsedRecipe.calories,
+        ingredients: parsedRecipe.ingredients,
+      };
+
+      // Add to generated recipes list
+      setGeneratedRecipes([...generatedRecipes, newRecipe]);
+      
+      toast({
+        title: 'Recipe Added!',
+        description: `${manualRecipe.name} has been parsed and added to your available recipes.`,
+      });
+
+      setManualRecipe({
+        name: '',
+        details: '',
+      });
+    } catch (error) {
+      console.error('Error parsing recipe:', error);
+      toast({
+        title: 'Failed to Parse Recipe',
+        description: error instanceof Error ? error.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsParsingRecipe(false);
+    }
   };
 
   const handleAIGenerate = async (e: React.FormEvent) => {
@@ -342,85 +386,50 @@ const Recipe = () => {
                 <CardHeader>
                   <CardTitle>Add Your Own Recipe</CardTitle>
                   <CardDescription>
-                    Manually create and save your favorite recipes
+                    Just provide the recipe name and details - AI will extract all the information
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleManualSubmit} className="space-y-6">
-                    <div className="grid gap-6 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="recipeName">Recipe Name</Label>
-                        <Input
-                          id="recipeName"
-                          placeholder="e.g., Chicken Stir Fry"
-                          value={manualRecipe.name}
-                          onChange={(e) => setManualRecipe({ ...manualRecipe, name: e.target.value })}
-                          required
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="servings">Servings</Label>
-                        <Input
-                          id="servings"
-                          type="number"
-                          placeholder="e.g., 4"
-                          value={manualRecipe.servings}
-                          onChange={(e) => setManualRecipe({ ...manualRecipe, servings: e.target.value })}
-                          required
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="prepTime">Prep Time</Label>
-                        <Input
-                          id="prepTime"
-                          placeholder="e.g., 15 minutes"
-                          value={manualRecipe.prepTime}
-                          onChange={(e) => setManualRecipe({ ...manualRecipe, prepTime: e.target.value })}
-                          required
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="cookTime">Cook Time</Label>
-                        <Input
-                          id="cookTime"
-                          placeholder="e.g., 30 minutes"
-                          value={manualRecipe.cookTime}
-                          onChange={(e) => setManualRecipe({ ...manualRecipe, cookTime: e.target.value })}
-                          required
-                        />
-                      </div>
-                    </div>
-
                     <div className="space-y-2">
-                      <Label htmlFor="ingredients">Ingredients</Label>
-                      <Textarea
-                        id="ingredients"
-                        placeholder="Enter each ingredient on a new line"
-                        rows={6}
-                        value={manualRecipe.ingredients}
-                        onChange={(e) => setManualRecipe({ ...manualRecipe, ingredients: e.target.value })}
+                      <Label htmlFor="recipeName">Recipe Name</Label>
+                      <Input
+                        id="recipeName"
+                        placeholder="e.g., Chicken Stir Fry"
+                        value={manualRecipe.name}
+                        onChange={(e) => setManualRecipe({ ...manualRecipe, name: e.target.value })}
                         required
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="instructions">Instructions</Label>
+                      <Label htmlFor="recipeDetails">Recipe Details</Label>
                       <Textarea
-                        id="instructions"
-                        placeholder="Enter each step on a new line"
-                        rows={8}
-                        value={manualRecipe.instructions}
-                        onChange={(e) => setManualRecipe({ ...manualRecipe, instructions: e.target.value })}
+                        id="recipeDetails"
+                        placeholder="Describe your recipe... include ingredients, quantities, cooking methods, and any other details. The more detail you provide, the better the AI can extract the information."
+                        rows={12}
+                        value={manualRecipe.details}
+                        onChange={(e) => setManualRecipe({ ...manualRecipe, details: e.target.value })}
                         required
+                        className="min-h-[200px]"
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Example: "A healthy chicken stir fry with 300g chicken breast, 2 cups of mixed vegetables, soy sauce, garlic, and ginger. Served with rice. Takes about 15 minutes to prep and 20 minutes to cook."
+                      </p>
                     </div>
 
-                    <Button type="submit" size="lg" className="w-full">
-                      <ChefHat className="mr-2 h-4 w-4" />
-                      Save Recipe
+                    <Button type="submit" size="lg" className="w-full" disabled={isParsingRecipe}>
+                      {isParsingRecipe ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Parsing Recipe with AI...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Add Recipe
+                        </>
+                      )}
                     </Button>
                   </form>
                 </CardContent>
