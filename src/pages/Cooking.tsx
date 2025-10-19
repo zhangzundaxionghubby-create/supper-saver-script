@@ -135,6 +135,31 @@ const Cooking = () => {
       return;
     }
 
+    // Remove ingredients from basket
+    const basketItems = localStorage.getItem('basketItems');
+    const shoppingIngredients = localStorage.getItem('shoppingIngredients');
+    
+    if (basketItems && shoppingIngredients) {
+      const basketIndices = JSON.parse(basketItems) as number[];
+      const allIngredients = JSON.parse(shoppingIngredients) as string[];
+      
+      // Find indices of recipe ingredients in the shopping list
+      const indicesToRemove = new Set<number>();
+      selectedRecipe.ingredients.forEach(recipeIngredient => {
+        const index = allIngredients.findIndex((item, idx) => 
+          basketIndices.includes(idx) && 
+          item.toLowerCase().includes(recipeIngredient.toLowerCase().split(' ').slice(-1)[0]) // Match by last word (ingredient name)
+        );
+        if (index !== -1) {
+          indicesToRemove.add(index);
+        }
+      });
+
+      // Update basket by removing used ingredients
+      const updatedBasketIndices = basketIndices.filter(idx => !indicesToRemove.has(idx));
+      localStorage.setItem('basketItems', JSON.stringify(updatedBasketIndices));
+    }
+
     const cookedMeal: CookedMeal = {
       id: mealKey,
       name: selectedRecipe.name,
@@ -151,7 +176,7 @@ const Cooking = () => {
 
     toast({
       title: 'Meal Marked as Cooked! 🎉',
-      description: `${selectedRecipe.name} has been added to your calorie tracker.`,
+      description: `${selectedRecipe.name} has been added to your calorie tracker and ingredients removed from basket.`,
     });
   };
 
