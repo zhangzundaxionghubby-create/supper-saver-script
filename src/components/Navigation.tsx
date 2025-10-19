@@ -12,6 +12,7 @@ const Navigation = () => {
     { path: '/shopping', icon: ShoppingCart, label: 'Shopping' },
     { path: '/prices', icon: TrendingUp, label: 'Prices' },
     { path: '/macros', icon: Calculator, label: 'Macros' },
+    { path: '/design', icon: Calculator, label: 'Design' },
   ];
 
   return (

@@ -10,6 +10,7 @@ import Shopping from "./pages/Shopping";
 import Prices from "./pages/Prices";
 import Macros from "./pages/Macros";
 import NotFound from "./pages/NotFound";
+import DesignSystem from "./pages/DesignSystem";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/shopping" element={<Shopping />} />
           <Route path="/prices" element={<Prices />} />
           <Route path="/macros" element={<Macros />} />
+          <Route path="/design" element={<DesignSystem />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
