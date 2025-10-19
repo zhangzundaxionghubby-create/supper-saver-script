@@ -2,7 +2,7 @@ import { ShoppingItem, PriceComparison, SwapSuggestion } from '@/types';
 import { mockStorePrices } from '@/data/mockPrices';
 
 export const calculatePrices = (shoppingList: ShoppingItem[]): PriceComparison[] => {
-  const stores = ['Tesco', 'Lidl', 'Asda', 'Sainsburys'];
+  const stores = ['Tesco', 'Sainsburys', 'Waitrose', 'Co-op', 'Aldi', 'Lidl'];
   
   return stores.map(store => {
     const items = shoppingList

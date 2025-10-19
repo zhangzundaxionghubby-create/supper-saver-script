@@ -28,7 +28,7 @@ export interface Recipe {
 
 export interface StorePrice {
   id: string;
-  store: 'Tesco' | 'Lidl' | 'Asda' | 'Sainsburys';
+  store: 'Tesco' | 'Sainsburys' | 'Waitrose' | 'Co-op' | 'Aldi' | 'Lidl';
   item_name: string;
   unit: string;
   pack_qty: number;

@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { ShoppingCart, ArrowLeft, Download, Plus, Sparkles, Loader2 } from 'lucide-react';
+import { ShoppingCart, ArrowLeft, Download, Plus, Sparkles, Loader2, TrendingDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { mockStorePrices } from '@/data/mockPrices';
+import { Badge } from '@/components/ui/badge';
 
 interface AssignedRecipe {
   name: string;
@@ -15,16 +17,77 @@ interface AssignedRecipe {
   ingredients: string[];
 }
 
+interface GroceryItem {
+  name: string;
+  quantity: string;
+  bestPrice: number;
+  bestStore: string;
+  allPrices: { store: string; price: number }[];
+}
+
 const ShoppingList = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [recipes, setRecipes] = useState<AssignedRecipe[]>([]);
-  const [ingredients, setIngredients] = useState<string[]>([]);
+  const [groceryItems, setGroceryItems] = useState<GroceryItem[]>([]);
   const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
   const [newItem, setNewItem] = useState('');
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [animatingItem, setAnimatingItem] = useState<number | null>(null);
+  const [totalCost, setTotalCost] = useState(0);
+
+  // Helper function to convert ingredients to grocery items with prices
+  const convertToGroceryItems = (ingredientsList: string[]): GroceryItem[] => {
+    return ingredientsList.map(ingredient => {
+      const lowerIngredient = ingredient.toLowerCase();
+      
+      // Find matching price data
+      const matchingPrices = mockStorePrices.filter(price => 
+        lowerIngredient.includes(price.item_name.toLowerCase())
+      );
+
+      if (matchingPrices.length > 0) {
+        // Group by store and get prices
+        const storeGroups = matchingPrices.reduce((acc, price) => {
+          if (!acc[price.store]) {
+            acc[price.store] = price;
+          }
+          return acc;
+        }, {} as Record<string, typeof matchingPrices[0]>);
+
+        const allPrices = Object.values(storeGroups).map(price => ({
+          store: price.store,
+          price: price.price_gbp
+        }));
+
+        // Find best price
+        const bestPriceData = allPrices.reduce((min, curr) => 
+          curr.price < min.price ? curr : min
+        );
+
+        const priceData = storeGroups[bestPriceData.store];
+        const quantity = `${priceData.pack_qty}${priceData.unit === 'g' ? 'g' : priceData.unit === 'ml' ? 'ml' : priceData.unit === 'kg' ? 'kg' : priceData.unit === 'pack' ? ' pack' : priceData.unit === 'tin' ? ' tin' : priceData.unit === 'loaf' ? ' loaf' : priceData.unit === 'pint' ? ' pint' : ''}`;
+
+        return {
+          name: priceData.item_name,
+          quantity,
+          bestPrice: bestPriceData.price,
+          bestStore: bestPriceData.store,
+          allPrices
+        };
+      }
+
+      // Fallback for items without price data
+      return {
+        name: ingredient,
+        quantity: '1 unit',
+        bestPrice: 2.50,
+        bestStore: 'Aldi',
+        allPrices: []
+      };
+    });
+  };
 
   useEffect(() => {
     const storedRecipes = localStorage.getItem('weeklyPlanRecipes');
@@ -37,7 +100,12 @@ const ShoppingList = () => {
     if (storedIngredients) {
       const allIngredients = JSON.parse(storedIngredients) as string[];
       const uniqueIngredients = Array.from(new Set(allIngredients));
-      setIngredients(uniqueIngredients);
+      const items = convertToGroceryItems(uniqueIngredients);
+      setGroceryItems(items);
+      
+      // Calculate total cost
+      const total = items.reduce((sum, item) => sum + item.bestPrice, 0);
+      setTotalCost(total);
     }
 
     // Load basket items
@@ -61,20 +129,27 @@ const ShoppingList = () => {
       
       toast({
         title: 'Added to Basket!',
-        description: `${ingredients[index]} is now in your basket.`,
+        description: `${groceryItems[index].name} is now in your basket.`,
       });
     }
     
     setCheckedItems(newChecked);
     
     // Save to localStorage for basket page
-    const basketItems = ingredients.filter((_, i) => newChecked.has(i));
     localStorage.setItem('basketItems', JSON.stringify(Array.from(newChecked)));
   };
 
   const handleAddItem = () => {
     if (newItem.trim()) {
-      setIngredients([...ingredients, newItem.trim()]);
+      const newGroceryItem: GroceryItem = {
+        name: newItem.trim(),
+        quantity: '1 unit',
+        bestPrice: 2.50,
+        bestStore: 'Aldi',
+        allPrices: []
+      };
+      setGroceryItems([...groceryItems, newGroceryItem]);
+      setTotalCost(prev => prev + newGroceryItem.bestPrice);
       setNewItem('');
       toast({
         title: 'Item Added',
@@ -95,7 +170,7 @@ const ShoppingList = () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            existingItems: ingredients,
+            existingItems: groceryItems.map(item => item.name),
           }),
         }
       );
@@ -124,7 +199,15 @@ const ShoppingList = () => {
   };
 
   const handleAddSuggestion = (suggestion: string) => {
-    setIngredients([...ingredients, suggestion]);
+    const newGroceryItem: GroceryItem = {
+      name: suggestion,
+      quantity: '1 unit',
+      bestPrice: 2.50,
+      bestStore: 'Aldi',
+      allPrices: []
+    };
+    setGroceryItems([...groceryItems, newGroceryItem]);
+    setTotalCost(prev => prev + newGroceryItem.bestPrice);
     setSuggestions(suggestions.filter(s => s !== suggestion));
     toast({
       title: 'Suggestion Added',
@@ -133,7 +216,9 @@ const ShoppingList = () => {
   };
 
   const handleDownloadList = () => {
-    const text = ingredients.map((item, i) => `${i + 1}. ${item}`).join('\n');
+    const text = groceryItems.map((item, i) => 
+      `${i + 1}. ${item.name} - ${item.quantity} - £${item.bestPrice.toFixed(2)} (${item.bestStore})`
+    ).join('\n') + `\n\nTotal: £${totalCost.toFixed(2)}`;
     const blob = new Blob([text], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -148,7 +233,7 @@ const ShoppingList = () => {
     });
   };
 
-  if (recipes.length === 0 && ingredients.length === 0) {
+  if (recipes.length === 0 && groceryItems.length === 0) {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
@@ -182,6 +267,11 @@ const ShoppingList = () => {
             <p className="text-muted-foreground">
               Check items off as you shop - they'll go into your basket
             </p>
+            <div className="flex items-center gap-2 mt-2">
+              <TrendingDown className="h-5 w-5 text-green-500" />
+              <span className="text-lg font-semibold">Total: £{totalCost.toFixed(2)}</span>
+              <Badge variant="secondary" className="ml-2">Best prices automatically selected</Badge>
+            </div>
           </div>
           <div className="flex gap-2">
             <Button onClick={() => navigate('/recipe')} variant="outline">
@@ -208,7 +298,7 @@ const ShoppingList = () => {
                   Your Shopping List
                 </CardTitle>
                 <CardDescription>
-                  {ingredients.length} items total | {checkedItems.size} in basket
+                  {groceryItems.length} items total | {checkedItems.size} in basket
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -227,10 +317,10 @@ const ShoppingList = () => {
 
                 {/* Items List */}
                 <div className="space-y-3">
-                  {ingredients.map((ingredient, index) => (
+                  {groceryItems.map((item, index) => (
                     <div
                       key={index}
-                      className={`relative flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-all ${
+                      className={`relative flex items-center gap-3 p-4 rounded-lg border hover:bg-muted/50 transition-all ${
                         animatingItem === index ? 'animate-bounce' : ''
                       }`}
                     >
@@ -238,13 +328,28 @@ const ShoppingList = () => {
                         checked={checkedItems.has(index)}
                         onCheckedChange={() => toggleItem(index)}
                       />
-                      <span
-                        className={`flex-1 ${
-                          checkedItems.has(index) ? 'line-through text-muted-foreground' : ''
-                        }`}
-                      >
-                        {ingredient}
-                      </span>
+                      <div className={`flex-1 ${checkedItems.has(index) ? 'line-through text-muted-foreground' : ''}`}>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="font-medium capitalize">{item.name}</span>
+                            <span className="text-sm text-muted-foreground ml-2">({item.quantity})</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              {item.bestStore}
+                            </Badge>
+                            <span className="font-semibold text-lg">£{item.bestPrice.toFixed(2)}</span>
+                          </div>
+                        </div>
+                        {item.allPrices.length > 1 && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Other prices: {item.allPrices
+                              .filter(p => p.store !== item.bestStore)
+                              .map(p => `${p.store} £${p.price.toFixed(2)}`)
+                              .join(' • ')}
+                          </div>
+                        )}
+                      </div>
                       {animatingItem === index && (
                         <span className="absolute right-4 text-2xl animate-ping">🛒</span>
                       )}
