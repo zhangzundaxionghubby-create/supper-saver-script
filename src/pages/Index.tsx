@@ -54,10 +54,8 @@ const Index = () => {
           <div className="relative container mx-auto px-4 flex h-full items-center">
             <div className="max-w-2xl text-white">
               <h1 className="mb-4 text-5xl font-bold leading-tight">
-                Smart Meal Planning
-                <br />
                 <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                  Made Simple
+                  Fridgly
                 </span>
               </h1>
               <p className="mb-8 text-xl text-gray-200">
