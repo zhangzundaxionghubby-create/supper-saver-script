@@ -17,7 +17,7 @@ const Navigation = () => {
     <nav className="sticky top-0 z-50 border-b bg-card shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between py-4">
-          <Link to="/recipe" className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent">
               <ChefHat className="h-5 w-5 text-primary-foreground" />
             </div>
