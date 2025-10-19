@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ChefHat, Sparkles } from 'lucide-react';
+import { ChefHat, Sparkles, ShoppingCart, Flame, Target, TrendingDown } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -17,13 +18,13 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="relative min-h-screen bg-black overflow-hidden flex items-center justify-center">
+    <div className="relative min-h-screen bg-background overflow-hidden">
       {/* Animated Grid Background */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-20"></div>
+      <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
       
       {/* Animated Gradient Orbs */}
       <div 
-        className="absolute w-96 h-96 bg-cream/20 rounded-full blur-3xl animate-pulse"
+        className="absolute w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse"
         style={{
           top: '10%',
           left: '20%',
@@ -31,7 +32,7 @@ const Index = () => {
         }}
       ></div>
       <div 
-        className="absolute w-80 h-80 bg-cream/10 rounded-full blur-3xl animate-pulse"
+        className="absolute w-80 h-80 bg-secondary/10 rounded-full blur-3xl animate-pulse"
         style={{
           bottom: '15%',
           right: '25%',
@@ -41,7 +42,7 @@ const Index = () => {
 
       {/* MouseFollower Effect */}
       <div
-        className="absolute w-64 h-64 bg-cream/5 rounded-full blur-3xl pointer-events-none transition-all duration-300"
+        className="absolute w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none transition-all duration-300"
         style={{
           left: mousePosition.x - 128,
           top: mousePosition.y - 128,
@@ -49,70 +50,127 @@ const Index = () => {
       ></div>
 
       {/* Content */}
-      <div className="relative z-10 max-w-5xl mx-auto px-4 text-center">
-        {/* Logo/Icon */}
-        <div className="mb-8 animate-fade-in">
-          <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-cream/10 backdrop-blur-sm border border-cream/20 mb-6 hover-scale">
-            <ChefHat className="w-12 h-12 text-cream" />
+      <div className="relative z-10 container mx-auto px-4 py-16">
+        {/* Hero Section */}
+        <div className="text-center max-w-5xl mx-auto mb-16">
+          {/* Logo/Icon */}
+          <div className="mb-8 animate-fade-in">
+            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary/10 backdrop-blur-sm border border-primary/20 mb-6 hover-scale">
+              <ChefHat className="w-12 h-12 text-primary" />
+            </div>
+          </div>
+
+          {/* Main Heading */}
+          <h1 
+            className="text-6xl md:text-7xl font-bold text-foreground mb-6 animate-fade-in"
+            style={{ animationDelay: '0.2s' }}
+          >
+            Your Kitchen,
+            <br />
+            <span className="text-muted-foreground">Simplified</span>
+          </h1>
+
+          {/* Subheading */}
+          <p 
+            className="text-xl md:text-2xl text-muted-foreground mb-12 max-w-2xl mx-auto animate-fade-in"
+            style={{ animationDelay: '0.4s' }}
+          >
+            Plan meals, compare prices, and cook with confidence. Your personal culinary assistant.
+          </p>
+
+          {/* CTA Button */}
+          <div 
+            className="animate-fade-in flex flex-col sm:flex-row gap-4 justify-center items-center mb-16"
+            style={{ animationDelay: '0.6s' }}
+          >
+            <Button
+              size="lg"
+              className="group relative px-8 py-6 text-lg hover:scale-105 transition-all duration-300"
+              onClick={() => navigate('/recipe')}
+            >
+              <Sparkles className="mr-2 h-5 w-5 group-hover:rotate-12 transition-transform" />
+              Start Cooking
+              <div className="absolute inset-0 rounded-md bg-primary/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity -z-10"></div>
+            </Button>
+            
+            <Button
+              size="lg"
+              variant="outline"
+              className="px-8 py-6 text-lg transition-all duration-300"
+              onClick={() => navigate('/recipe')}
+            >
+              Learn More
+            </Button>
+          </div>
+
+          {/* Features Pills */}
+          <div 
+            className="flex flex-wrap gap-3 justify-center animate-fade-in"
+            style={{ animationDelay: '0.8s' }}
+          >
+            {['AI-Powered Recipes', 'Price Comparison', 'Meal Planning', 'Calorie Tracking'].map((feature, index) => (
+              <div
+                key={index}
+                className="px-4 py-2 rounded-full border border-border bg-card/50 backdrop-blur-sm text-foreground text-sm hover:bg-card transition-all duration-300 hover-scale"
+              >
+                {feature}
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Main Heading */}
-        <h1 
-          className="text-7xl md:text-8xl font-bold text-cream mb-6 animate-fade-in"
-          style={{ animationDelay: '0.2s' }}
-        >
-          Your Kitchen,
-          <br />
-          <span className="text-cream/70">Simplified</span>
-        </h1>
-
-        {/* Subheading */}
-        <p 
-          className="text-xl md:text-2xl text-cream/60 mb-12 max-w-2xl mx-auto animate-fade-in"
-          style={{ animationDelay: '0.4s' }}
-        >
-          Plan meals, compare prices, and cook with confidence. Your personal culinary assistant.
-        </p>
-
-        {/* CTA Button */}
+        {/* Feature Cards */}
         <div 
-          className="animate-fade-in flex flex-col sm:flex-row gap-4 justify-center items-center"
-          style={{ animationDelay: '0.6s' }}
+          className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto animate-fade-in"
+          style={{ animationDelay: '1s' }}
         >
-          <Button
-            size="lg"
-            className="group relative px-8 py-6 text-lg bg-cream text-black hover:bg-cream/90 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-cream/20"
-            onClick={() => navigate('/recipe')}
-          >
-            <Sparkles className="mr-2 h-5 w-5 group-hover:rotate-12 transition-transform" />
-            Start Cooking
-            <div className="absolute inset-0 rounded-md bg-cream/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity -z-10"></div>
-          </Button>
-          
-          <Button
-            size="lg"
-            variant="outline"
-            className="px-8 py-6 text-lg border-cream/30 text-cream hover:bg-cream/10 hover:border-cream/50 transition-all duration-300"
-            onClick={() => navigate('/recipe')}
-          >
-            Learn More
-          </Button>
-        </div>
+          <Card className="hover-scale transition-all duration-300 hover:shadow-lg">
+            <CardHeader>
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <ChefHat className="h-6 w-6 text-primary" />
+              </div>
+              <CardTitle className="text-lg">Recipe Planning</CardTitle>
+              <CardDescription>
+                Generate AI recipes or add your own. Drag and drop into your weekly calendar.
+              </CardDescription>
+            </CardHeader>
+          </Card>
 
-        {/* Features Pills */}
-        <div 
-          className="mt-16 flex flex-wrap gap-3 justify-center animate-fade-in"
-          style={{ animationDelay: '0.8s' }}
-        >
-          {['AI-Powered Recipes', 'Price Comparison', 'Meal Planning', 'Calorie Tracking'].map((feature, index) => (
-            <div
-              key={index}
-              className="px-4 py-2 rounded-full border border-cream/20 text-cream/70 text-sm backdrop-blur-sm bg-cream/5 hover:bg-cream/10 hover:border-cream/30 transition-all duration-300 hover-scale"
-            >
-              {feature}
-            </div>
-          ))}
+          <Card className="hover-scale transition-all duration-300 hover:shadow-lg">
+            <CardHeader>
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <TrendingDown className="h-6 w-6 text-primary" />
+              </div>
+              <CardTitle className="text-lg">Price Comparison</CardTitle>
+              <CardDescription>
+                Automatically compare prices across UK supermarkets and find the best deals.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="hover-scale transition-all duration-300 hover:shadow-lg">
+            <CardHeader>
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <ShoppingCart className="h-6 w-6 text-primary" />
+              </div>
+              <CardTitle className="text-lg">Smart Shopping</CardTitle>
+              <CardDescription>
+                Track ingredients, monitor quantities, and manage your basket efficiently.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="hover-scale transition-all duration-300 hover:shadow-lg">
+            <CardHeader>
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <Flame className="h-6 w-6 text-primary" />
+              </div>
+              <CardTitle className="text-lg">Calorie Tracking</CardTitle>
+              <CardDescription>
+                Monitor nutrition, track cooked meals, and meet your health goals.
+              </CardDescription>
+            </CardHeader>
+          </Card>
         </div>
       </div>
 
@@ -121,7 +179,7 @@ const Index = () => {
         {[...Array(20)].map((_, i) => (
           <div
             key={i}
-            className="absolute w-1 h-1 bg-cream rounded-full animate-float"
+            className="absolute w-1 h-1 bg-primary/30 rounded-full animate-float"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
@@ -134,7 +192,7 @@ const Index = () => {
       </div>
 
       {/* Bottom Gradient */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent"></div>
+      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent"></div>
     </div>
   );
 };
