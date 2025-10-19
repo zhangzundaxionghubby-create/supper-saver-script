@@ -2,3 +2,6 @@ project_id = "hhaxlgxzvwvfgevzkmka"
 
 [functions.generate-recipes]
 verify_jwt = false
+
+[functions.shopping-suggestions]
+verify_jwt = false

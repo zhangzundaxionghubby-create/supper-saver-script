@@ -8,7 +8,7 @@ const Navigation = () => {
   const navItems = [
     { path: '/recipe', icon: ChefHat, label: 'Recipe' },
     { path: '/shopping-list', icon: ShoppingCart, label: 'Shopping List' },
-    { path: '/food', icon: UtensilsCrossed, label: 'Food' },
+    { path: '/basket', icon: UtensilsCrossed, label: 'Basket' },
     { path: '/cooking', icon: Flame, label: 'Cooking' },
     { path: '/calorie', icon: Target, label: 'Calorie' },
     { path: '/leftovers', icon: RefreshCw, label: 'Leftovers' },
