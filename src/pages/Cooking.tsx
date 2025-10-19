@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ChefHat, Loader2, Clock, Users, Flame, CheckCircle2 } from 'lucide-react';
+import { ChefHat, Loader2, Clock, Users, Flame, CheckCircle2, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { saveCookedMeal, getCookedMeals } from '@/lib/storage';
 import { CookedMeal } from '@/types';
@@ -180,6 +180,16 @@ const Cooking = () => {
     });
   };
 
+  const handleClearAll = () => {
+    setCookingSteps(null);
+    setSavedSteps({});
+    localStorage.removeItem('savedCookingSteps');
+    toast({
+      title: 'All Cleared',
+      description: 'All saved cooking steps have been cleared.',
+    });
+  };
+
   const isMealCooked = (recipe: Recipe) => {
     return cookedMeals.some(meal => 
       meal.name === recipe.name && 
@@ -218,14 +228,22 @@ const Cooking = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-            <ChefHat className="h-10 w-10" />
-            Cooking
-          </h1>
-          <p className="text-muted-foreground">
-            Select a recipe to generate detailed cooking instructions
-          </p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
+              <ChefHat className="h-10 w-10" />
+              Cooking
+            </h1>
+            <p className="text-muted-foreground">
+              Select a recipe to generate detailed cooking instructions
+            </p>
+          </div>
+          {Object.keys(savedSteps).length > 0 && (
+            <Button onClick={handleClearAll} variant="destructive">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Clear All
+            </Button>
+          )}
         </div>
 
         <div className="grid gap-6 lg:grid-cols-12">

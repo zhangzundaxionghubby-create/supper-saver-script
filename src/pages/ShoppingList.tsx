@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { ShoppingCart, ArrowLeft, Download, Plus, Sparkles, Loader2, TrendingDown } from 'lucide-react';
+import { ShoppingCart, ArrowLeft, Download, Plus, Sparkles, Loader2, TrendingDown, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { mockStorePrices } from '@/data/mockPrices';
 import { Badge } from '@/components/ui/badge';
@@ -233,6 +233,20 @@ const ShoppingList = () => {
     });
   };
 
+  const handleClearAll = () => {
+    setGroceryItems([]);
+    setRecipes([]);
+    setCheckedItems(new Set());
+    setTotalCost(0);
+    localStorage.removeItem('weeklyPlanRecipes');
+    localStorage.removeItem('shoppingIngredients');
+    localStorage.removeItem('basketItems');
+    toast({
+      title: 'All Cleared',
+      description: 'Shopping list and basket have been cleared.',
+    });
+  };
+
   if (recipes.length === 0 && groceryItems.length === 0) {
     return (
       <div className="min-h-screen bg-background">
@@ -285,6 +299,12 @@ const ShoppingList = () => {
               <Download className="mr-2 h-4 w-4" />
               Download
             </Button>
+            {groceryItems.length > 0 && (
+              <Button onClick={handleClearAll} variant="destructive">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Clear All
+              </Button>
+            )}
           </div>
         </div>
 

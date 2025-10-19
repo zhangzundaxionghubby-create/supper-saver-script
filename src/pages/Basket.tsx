@@ -3,13 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShoppingBasket, ArrowLeft, Trash2 } from 'lucide-react';
+import { ShoppingBasket, ArrowLeft, Trash2, Package } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import VolumeIndicator from '@/components/VolumeIndicator';
+import { mockStorePrices } from '@/data/mockPrices';
+
+interface BasketItemWithQuantity {
+  name: string;
+  quantity: string;
+  percentage: number;
+}
 
 const Basket = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [basketItems, setBasketItems] = useState<string[]>([]);
+  const [basketItems, setBasketItems] = useState<BasketItemWithQuantity[]>([]);
 
   useEffect(() => {
     loadBasketItems();
@@ -22,7 +30,37 @@ const Basket = () => {
     if (storedIngredients && storedBasketIndices) {
       const allIngredients = JSON.parse(storedIngredients) as string[];
       const basketIndices = JSON.parse(storedBasketIndices) as number[];
-      const items = basketIndices.map(index => allIngredients[index]).filter(Boolean);
+      
+      // Get used quantities from cooked meals
+      const usedQuantities = JSON.parse(localStorage.getItem('usedIngredients') || '{}') as Record<string, number>;
+      
+      const items = basketIndices.map(index => {
+        const ingredient = allIngredients[index];
+        if (!ingredient) return null;
+        
+        const lowerIngredient = ingredient.toLowerCase();
+        const priceData = mockStorePrices.find(p => 
+          lowerIngredient.includes(p.item_name.toLowerCase())
+        );
+        
+        let quantity = '1 unit';
+        let percentage = 100;
+        
+        if (priceData) {
+          quantity = `${priceData.pack_qty}${priceData.unit === 'g' ? 'g' : priceData.unit === 'ml' ? 'ml' : priceData.unit === 'kg' ? 'kg' : priceData.unit === 'pack' ? ' pack' : priceData.unit === 'tin' ? ' tin' : priceData.unit === 'loaf' ? ' loaf' : priceData.unit === 'pint' ? ' pint' : ''}`;
+          
+          // Calculate percentage based on usage
+          const used = usedQuantities[ingredient] || 0;
+          percentage = Math.max(0, 100 - (used * 100 / priceData.pack_qty));
+        }
+        
+        return {
+          name: ingredient,
+          quantity,
+          percentage: Math.round(percentage)
+        };
+      }).filter(Boolean) as BasketItemWithQuantity[];
+      
       setBasketItems(items);
     }
   };
@@ -36,7 +74,7 @@ const Basket = () => {
     if (storedIngredients) {
       const allIngredients = JSON.parse(storedIngredients) as string[];
       const newIndices = newBasketItems
-        .map(item => allIngredients.indexOf(item))
+        .map(item => allIngredients.indexOf(item.name))
         .filter(i => i !== -1);
       localStorage.setItem('basketItems', JSON.stringify(newIndices));
     }
@@ -105,25 +143,35 @@ const Basket = () => {
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {basketItems.map((item, index) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between p-4 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
+                      className="p-5 rounded-lg border bg-muted/30 hover:bg-muted/40 transition-all animate-fade-in"
+                      style={{ animationDelay: `${index * 0.05}s` }}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <ShoppingBasket className="h-5 w-5 text-primary" />
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Package className="h-6 w-6 text-primary" />
+                          </div>
+                          <div>
+                            <span className="font-semibold capitalize text-lg">{item.name}</span>
+                          </div>
                         </div>
-                        <span className="font-medium">{item}</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleRemoveItem(index)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleRemoveItem(index)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <VolumeIndicator 
+                        ingredient={item.name}
+                        quantity={item.quantity}
+                        percentage={item.percentage}
+                      />
                     </div>
                   ))}
                 </div>

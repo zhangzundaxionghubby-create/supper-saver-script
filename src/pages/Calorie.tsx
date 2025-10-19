@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, Flame, TrendingUp, X } from 'lucide-react';
+import { Calendar, Flame, TrendingUp, X, Trash2 } from 'lucide-react';
 import { getCookedMeals, removeCookedMeal } from '@/lib/storage';
 import { CookedMeal } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -26,6 +26,16 @@ const Calorie = () => {
     });
   };
 
+  const handleClearAll = () => {
+    cookedMeals.forEach(meal => removeCookedMeal(meal.id));
+    setCookedMeals([]);
+    localStorage.removeItem('usedIngredients');
+    toast({
+      title: 'All Cleared',
+      description: 'All tracked meals have been cleared.',
+    });
+  };
+
   const totalCalories = cookedMeals.reduce((sum, meal) => sum + meal.calories, 0);
   const totalProtein = cookedMeals.reduce((sum, meal) => sum + meal.protein, 0);
   const totalCarbs = cookedMeals.reduce((sum, meal) => sum + meal.carbs, 0);
@@ -42,14 +52,22 @@ const Calorie = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-            <Flame className="h-10 w-10" />
-            Calorie Tracker
-          </h1>
-          <p className="text-muted-foreground">
-            Track the meals you've cooked and monitor your nutrition
-          </p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
+              <Flame className="h-10 w-10" />
+              Calorie Tracker
+            </h1>
+            <p className="text-muted-foreground">
+              Track the meals you've cooked and monitor your nutrition
+            </p>
+          </div>
+          {cookedMeals.length > 0 && (
+            <Button onClick={handleClearAll} variant="destructive">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Clear All
+            </Button>
+          )}
         </div>
 
         {/* Summary Cards */}

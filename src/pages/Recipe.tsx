@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ChefHat, Sparkles, Calendar, ArrowRight, GripVertical } from 'lucide-react';
+import { Loader2, ChefHat, Sparkles, Calendar, ArrowRight, GripVertical, Trash2 } from 'lucide-react';
 
 interface Recipe {
   name: string;
@@ -162,6 +162,18 @@ const Recipe = () => {
     });
   };
 
+  const handleClearAll = () => {
+    setGeneratedRecipes([]);
+    setAssignedRecipes([]);
+    setShowAssignment(false);
+    localStorage.removeItem('weeklyPlanRecipes');
+    localStorage.removeItem('shoppingIngredients');
+    toast({
+      title: 'All Cleared',
+      description: 'Your meal plan and recipes have been cleared.',
+    });
+  };
+
   const handleProceedToShopping = () => {
     if (assignedRecipes.length === 0) {
       toast({
@@ -183,11 +195,19 @@ const Recipe = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Weekly Recipe Planner</h1>
-          <p className="text-muted-foreground">
-            Generate recipes and drag them into your weekly calendar
-          </p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">Weekly Recipe Planner</h1>
+            <p className="text-muted-foreground">
+              Generate recipes and drag them into your weekly calendar
+            </p>
+          </div>
+          {(generatedRecipes.length > 0 || assignedRecipes.length > 0) && (
+            <Button onClick={handleClearAll} variant="destructive">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Clear All
+            </Button>
+          )}
         </div>
 
         {!showAssignment ? (
