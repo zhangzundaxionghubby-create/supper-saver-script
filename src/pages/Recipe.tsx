@@ -177,6 +177,9 @@ const Recipe = () => {
         name: '',
         details: '',
       });
+      
+      // Switch to list tab to see the added recipe
+      setActiveTab('list');
     } catch (error) {
       console.error('Error parsing recipe:', error);
       toast({
@@ -317,27 +320,43 @@ const Recipe = () => {
     });
   };
 
-  const handleLikeRecipe = async (recipeName: string) => {
-    const { error } = await supabase
-      .from('recipes')
-      .delete()
-      .eq('name', recipeName);
+  const handleLikeRecipe = (recipeName: string) => {
+    // Find the recipe
+    const recipe = allRecipes.find(r => r.name === recipeName);
+    if (!recipe) return;
 
-    if (error) {
-      console.error('Error deleting recipe:', error);
-      toast({
-        title: 'Failed to Remove',
-        description: 'Could not remove the recipe.',
-        variant: 'destructive',
-      });
-      return;
+    // Find the first available meal slot (going through days and meal types)
+    let assigned = false;
+    for (const day of DAYS) {
+      for (const mealType of MEAL_TYPES) {
+        const existingAssignment = assignedRecipes.find(
+          r => r.day === day && r.mealType === mealType
+        );
+        
+        if (!existingAssignment) {
+          // Found an empty slot, assign the recipe here
+          const newAssignment: AssignedRecipe = { ...recipe, day, mealType };
+          setAssignedRecipes([...assignedRecipes, newAssignment]);
+          
+          toast({
+            title: 'Recipe Added to Meal Plan!',
+            description: `${recipeName} added to ${day} ${mealType}. View it in the Meal Planning tab.`,
+          });
+          
+          assigned = true;
+          break;
+        }
+      }
+      if (assigned) break;
     }
 
-    await loadRecipes();
-    toast({
-      title: 'Recipe Liked!',
-      description: `"${recipeName}" removed from list and ready for meal planning.`,
-    });
+    if (!assigned) {
+      toast({
+        title: 'Meal Plan Full',
+        description: 'All meal slots are filled. Go to Meal Planning to make space or replace a recipe.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleNextStep = () => {
