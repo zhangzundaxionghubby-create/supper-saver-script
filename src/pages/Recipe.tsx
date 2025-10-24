@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ChefHat, Sparkles, Calendar, ArrowRight, GripVertical, Trash2 } from 'lucide-react';
+import { Loader2, ChefHat, Sparkles, Calendar, ArrowRight, GripVertical, Trash2, Search, List } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Recipe {
   name: string;
@@ -34,10 +35,12 @@ const Recipe = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedRecipes, setGeneratedRecipes] = useState<Recipe[]>([]);
+  const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
+  const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [assignedRecipes, setAssignedRecipes] = useState<AssignedRecipe[]>([]);
-  const [showAssignment, setShowAssignment] = useState(false);
   const [draggedRecipe, setDraggedRecipe] = useState<Recipe | null>(null);
+  const [activeTab, setActiveTab] = useState('generate');
 
   const [manualRecipe, setManualRecipe] = useState({
     name: '',
@@ -54,6 +57,74 @@ const Recipe = () => {
     numberOfRecipes: '7',
     numberOfPeople: '2',
   });
+
+  // Load all recipes from database
+  useEffect(() => {
+    loadRecipes();
+  }, []);
+
+  // Filter recipes based on search
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setFilteredRecipes(allRecipes);
+    } else {
+      const filtered = allRecipes.filter(recipe =>
+        recipe.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredRecipes(filtered);
+    }
+  }, [searchQuery, allRecipes]);
+
+  const loadRecipes = async () => {
+    const { data, error } = await supabase
+      .from('recipes')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error loading recipes:', error);
+      toast({
+        title: 'Failed to Load Recipes',
+        description: 'Could not load your recipe list.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const recipes: Recipe[] = data.map(r => ({
+      name: r.name,
+      servings: r.servings,
+      prepTime: r.prep_time || '',
+      cookTime: r.cook_time || '',
+      protein: r.protein,
+      carbs: r.carbs,
+      calories: r.calories,
+      ingredients: r.ingredients as string[],
+    }));
+
+    setAllRecipes(recipes);
+    setFilteredRecipes(recipes);
+  };
+
+  const saveRecipeToDatabase = async (recipe: Recipe) => {
+    const { error } = await supabase
+      .from('recipes')
+      .insert({
+        name: recipe.name,
+        servings: recipe.servings,
+        prep_time: recipe.prepTime,
+        cook_time: recipe.cookTime,
+        protein: recipe.protein,
+        carbs: recipe.carbs,
+        calories: recipe.calories,
+        ingredients: recipe.ingredients,
+      });
+
+    if (error) {
+      console.error('Error saving recipe:', error);
+      throw error;
+    }
+  };
 
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,12 +164,13 @@ const Recipe = () => {
         ingredients: parsedRecipe.ingredients,
       };
 
-      // Add to generated recipes list
-      setGeneratedRecipes([...generatedRecipes, newRecipe]);
+      // Save to database
+      await saveRecipeToDatabase(newRecipe);
+      await loadRecipes();
       
       toast({
         title: 'Recipe Added!',
-        description: `${manualRecipe.name} has been parsed and added to your available recipes.`,
+        description: `${manualRecipe.name} has been saved to your recipe list.`,
       });
 
       setManualRecipe({
@@ -146,12 +218,18 @@ const Recipe = () => {
       }
 
       const data = await response.json();
-      setGeneratedRecipes(data.recipes);
-      setShowAssignment(true);
+      
+      // Save all generated recipes to database
+      for (const recipe of data.recipes) {
+        await saveRecipeToDatabase(recipe);
+      }
+      
+      await loadRecipes();
+      setActiveTab('list');
       
       toast({
         title: 'Recipes Generated!',
-        description: `Successfully created ${data.recipes.length} recipes. Drag them into your weekly plan!`,
+        description: `Successfully created ${data.recipes.length} recipes and saved to your list!`,
       });
     } catch (error) {
       console.error('Error generating recipes:', error);
@@ -206,15 +284,36 @@ const Recipe = () => {
     });
   };
 
-  const handleClearAll = () => {
-    setGeneratedRecipes([]);
+  const handleClearMealPlan = () => {
     setAssignedRecipes([]);
-    setShowAssignment(false);
     localStorage.removeItem('weeklyPlanRecipes');
     localStorage.removeItem('shoppingIngredients');
     toast({
-      title: 'All Cleared',
-      description: 'Your meal plan and recipes have been cleared.',
+      title: 'Meal Plan Cleared',
+      description: 'Your weekly meal plan has been cleared.',
+    });
+  };
+
+  const handleDeleteRecipe = async (recipeName: string) => {
+    const { error } = await supabase
+      .from('recipes')
+      .delete()
+      .eq('name', recipeName);
+
+    if (error) {
+      console.error('Error deleting recipe:', error);
+      toast({
+        title: 'Failed to Delete',
+        description: 'Could not delete the recipe.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    await loadRecipes();
+    toast({
+      title: 'Recipe Deleted',
+      description: 'Recipe removed from your list.',
     });
   };
 
@@ -239,33 +338,42 @@ const Recipe = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">Weekly Recipe Planner</h1>
-            <p className="text-muted-foreground">
-              Generate recipes and drag them into your weekly calendar
-            </p>
-          </div>
-          {(generatedRecipes.length > 0 || assignedRecipes.length > 0) && (
-            <Button onClick={handleClearAll} variant="destructive">
-              <Trash2 className="mr-2 h-4 w-4" />
-              Clear All
-            </Button>
-          )}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold mb-2">Recipe Management</h1>
+          <p className="text-muted-foreground">
+            Generate recipes, manage your list, and plan your weekly meals
+          </p>
         </div>
 
-        {!showAssignment ? (
-          <Tabs defaultValue="ai" className="space-y-6">
-            <TabsList className="grid w-full max-w-md grid-cols-2">
-              <TabsTrigger value="ai" className="gap-2">
-                <Sparkles className="h-4 w-4" />
-                AI Generate
-              </TabsTrigger>
-              <TabsTrigger value="manual" className="gap-2">
-                <ChefHat className="h-4 w-4" />
-                Manual Input
-              </TabsTrigger>
-            </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full max-w-2xl grid-cols-3">
+            <TabsTrigger value="generate" className="gap-2">
+              <Sparkles className="h-4 w-4" />
+              Generate Recipes
+            </TabsTrigger>
+            <TabsTrigger value="list" className="gap-2">
+              <List className="h-4 w-4" />
+              Recipe List ({allRecipes.length})
+            </TabsTrigger>
+            <TabsTrigger value="plan" className="gap-2">
+              <Calendar className="h-4 w-4" />
+              Meal Planning
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Tab 1: Generate Recipes */}
+          <TabsContent value="generate" className="space-y-6">
+            <Tabs defaultValue="ai" className="space-y-6">
+              <TabsList className="grid w-full max-w-md grid-cols-2">
+                <TabsTrigger value="ai" className="gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  AI Generate
+                </TabsTrigger>
+                <TabsTrigger value="manual" className="gap-2">
+                  <ChefHat className="h-4 w-4" />
+                  Manual Input
+                </TabsTrigger>
+              </TabsList>
 
             <TabsContent value="ai" className="space-y-6">
               <Card>
@@ -435,19 +543,101 @@ const Recipe = () => {
                 </CardContent>
               </Card>
             </TabsContent>
-          </Tabs>
-        ) : (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            </Tabs>
+          </TabsContent>
+
+          {/* Tab 2: Recipe List */}
+          <TabsContent value="list" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Your Recipe Collection</CardTitle>
+                <CardDescription>
+                  All your generated recipes in one place. Search and manage your collection.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-6">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search recipes..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+
+                {filteredRecipes.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground">
+                      {searchQuery ? 'No recipes found matching your search.' : 'No recipes yet. Generate some recipes to get started!'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {filteredRecipes.map((recipe, index) => (
+                      <Card key={index} className="hover:shadow-lg transition-shadow">
+                        <CardHeader>
+                          <div className="flex items-start justify-between">
+                            <CardTitle className="text-lg line-clamp-2">{recipe.name}</CardTitle>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteRecipe(recipe.name)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <CardDescription>
+                            {recipe.servings} servings • {recipe.prepTime || 'N/A'} prep • {recipe.cookTime || 'N/A'} cook
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Protein:</span>
+                              <span className="font-medium">{recipe.protein}g</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Carbs:</span>
+                              <span className="font-medium">{recipe.carbs}g</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Calories:</span>
+                              <span className="font-medium">{recipe.calories}</span>
+                            </div>
+                            <div className="pt-2">
+                              <p className="text-xs text-muted-foreground">
+                                {recipe.ingredients.length} ingredients
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Tab 3: Meal Planning */}
+          <TabsContent value="plan" className="space-y-6">
+            <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-2xl font-bold">Drag Recipes to Your Weekly Calendar</h2>
+                <h2 className="text-2xl font-bold">Weekly Meal Planner</h2>
                 <p className="text-muted-foreground">
-                  Drag and drop recipes into any day and meal slot
+                  Drag recipes from your list into the weekly calendar
                 </p>
               </div>
-              <Button onClick={() => setShowAssignment(false)} variant="outline">
-                Generate More Recipes
-              </Button>
+              {assignedRecipes.length > 0 && (
+                <Button onClick={handleClearMealPlan} variant="outline">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Clear Meal Plan
+                </Button>
+              )}
             </div>
 
             <div className="grid gap-6 lg:grid-cols-12">
@@ -524,33 +714,50 @@ const Recipe = () => {
               <div className="lg:col-span-4">
                 <Card className="sticky top-4">
                   <CardHeader>
-                    <CardTitle className="text-lg">Available Recipes</CardTitle>
+                    <CardTitle className="text-lg">Your Recipe List</CardTitle>
                     <CardDescription>
-                      Drag these into your calendar
+                      Drag any recipe into your calendar ({allRecipes.length} total)
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
+                    <div className="mb-4">
+                      <div className="relative">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-8 h-9"
+                        />
+                      </div>
+                    </div>
                     <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                      {generatedRecipes.map((recipe, index) => (
-                        <div
-                          key={index}
-                          draggable
-                          onDragStart={() => handleDragStart(recipe)}
-                          className="p-3 rounded-lg border bg-card hover:bg-muted/50 cursor-grab active:cursor-grabbing transition-colors"
-                        >
-                          <div className="flex items-start gap-2">
-                            <GripVertical className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm line-clamp-2">{recipe.name}</p>
-                              <div className="flex gap-2 text-xs text-muted-foreground mt-1">
-                                <span>{recipe.protein}g protein</span>
-                                <span>•</span>
-                                <span>{recipe.calories} cal</span>
+                      {filteredRecipes.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-8">
+                          {searchQuery ? 'No recipes found.' : 'Generate recipes to get started!'}
+                        </p>
+                      ) : (
+                        filteredRecipes.map((recipe, index) => (
+                          <div
+                            key={index}
+                            draggable
+                            onDragStart={() => handleDragStart(recipe)}
+                            className="p-3 rounded-lg border bg-card hover:bg-muted/50 cursor-grab active:cursor-grabbing transition-colors"
+                          >
+                            <div className="flex items-start gap-2">
+                              <GripVertical className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm line-clamp-2">{recipe.name}</p>
+                                <div className="flex gap-2 text-xs text-muted-foreground mt-1">
+                                  <span>{recipe.protein}g protein</span>
+                                  <span>•</span>
+                                  <span>{recipe.calories} cal</span>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -564,8 +771,8 @@ const Recipe = () => {
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
-          </div>
-        )}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

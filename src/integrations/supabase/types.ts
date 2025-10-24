@@ -14,7 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      recipes: {
+        Row: {
+          calories: number
+          carbs: number
+          cook_time: string | null
+          created_at: string
+          id: string
+          ingredients: Json
+          name: string
+          prep_time: string | null
+          protein: number
+          servings: number
+        }
+        Insert: {
+          calories?: number
+          carbs?: number
+          cook_time?: string | null
+          created_at?: string
+          id?: string
+          ingredients?: Json
+          name: string
+          prep_time?: string | null
+          protein?: number
+          servings?: number
+        }
+        Update: {
+          calories?: number
+          carbs?: number
+          cook_time?: string | null
+          created_at?: string
+          id?: string
+          ingredients?: Json
+          name?: string
+          prep_time?: string | null
+          protein?: number
+          servings?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
