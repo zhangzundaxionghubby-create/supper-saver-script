@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.parse-recipe]
 verify_jwt = false
+
+[functions.estimate-nutrients]
+verify_jwt = false
