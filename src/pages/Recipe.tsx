@@ -317,10 +317,26 @@ const Recipe = () => {
     });
   };
 
-  const handleLikeRecipe = (recipeName: string) => {
+  const handleLikeRecipe = async (recipeName: string) => {
+    const { error } = await supabase
+      .from('recipes')
+      .delete()
+      .eq('name', recipeName);
+
+    if (error) {
+      console.error('Error deleting recipe:', error);
+      toast({
+        title: 'Failed to Remove',
+        description: 'Could not remove the recipe.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    await loadRecipes();
     toast({
       title: 'Recipe Liked!',
-      description: `"${recipeName}" is ready to use in your meal planning.`,
+      description: `"${recipeName}" removed from list and ready for meal planning.`,
     });
   };
 
