@@ -318,12 +318,26 @@ const Recipe = () => {
   };
 
   const handleLikeRecipe = (recipeName: string) => {
-    setActiveTab('plan');
-    setSearchQuery(''); // Clear search to show all recipes in plan tab
     toast({
-      title: 'Ready to Plan!',
-      description: `"${recipeName}" is ready to drag into your weekly calendar.`,
+      title: 'Recipe Liked!',
+      description: `"${recipeName}" is ready to use in your meal planning.`,
     });
+  };
+
+  const handleNextStep = () => {
+    if (activeTab === 'generate') {
+      setActiveTab('list');
+    } else if (activeTab === 'list') {
+      setActiveTab('plan');
+    } else if (activeTab === 'plan') {
+      handleProceedToShopping();
+    }
+  };
+
+  const getNextStepLabel = () => {
+    if (activeTab === 'generate') return 'Next: View Recipe List';
+    if (activeTab === 'list') return 'Next: Plan Meals';
+    return 'Next: Shopping List';
   };
 
   const handleProceedToShopping = () => {
@@ -347,11 +361,17 @@ const Recipe = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Recipe Management</h1>
-          <p className="text-muted-foreground">
-            Generate recipes, manage your list, and plan your weekly meals
-          </p>
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">Recipe Management</h1>
+            <p className="text-muted-foreground">
+              Generate recipes, manage your list, and plan your weekly meals
+            </p>
+          </div>
+          <Button onClick={handleNextStep} size="lg" className="flex-shrink-0">
+            {getNextStepLabel()}
+            <ArrowRight className="ml-2 h-5 w-5" />
+          </Button>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -784,13 +804,6 @@ const Recipe = () => {
               </div>
             </div>
 
-            {/* Next Button */}
-            <div className="flex justify-end pt-6">
-              <Button onClick={handleProceedToShopping} size="lg">
-                Next: Create Shopping List
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
           </TabsContent>
         </Tabs>
       </div>
