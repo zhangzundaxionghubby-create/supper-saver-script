@@ -820,6 +820,21 @@ const Recipe = () => {
               </div>
             </div>
 
+            {/* Add Recipe Prompt */}
+            <div className="mt-8 text-center">
+              <Card className="max-w-md mx-auto">
+                <CardContent className="pt-6">
+                  <p className="text-muted-foreground mb-4">
+                    No recipe? Generate one or type in your own
+                  </p>
+                  <Button onClick={() => setActiveTab('generate')} variant="outline" size="lg" className="gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    Go to Recipe Generation
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
           </TabsContent>
         </Tabs>
       </div>
