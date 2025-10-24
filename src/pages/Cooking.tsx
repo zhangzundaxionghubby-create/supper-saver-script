@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ChefHat, Loader2, Clock, Users, Flame, CheckCircle2, Trash2, ShoppingBasket, AlertCircle } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { ChefHat, Loader2, Clock, Users, Flame, CheckCircle2, Trash2, ShoppingBasket, AlertCircle, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { saveCookedMeal, getCookedMeals } from '@/lib/storage';
 import { CookedMeal } from '@/types';
@@ -39,6 +40,7 @@ const Cooking = () => {
   const [cookedMeals, setCookedMeals] = useState<CookedMeal[]>([]);
   const [basketItems, setBasketItems] = useState<string[]>([]);
   const [hasAllIngredients, setHasAllIngredients] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState('');
 
   useEffect(() => {
     const storedRecipes = localStorage.getItem('weeklyPlanRecipes');
@@ -233,6 +235,27 @@ const Cooking = () => {
       meal.day === recipe.day && 
       meal.mealType === recipe.mealType
     );
+  };
+
+  const handleSubmitFeedback = () => {
+    if (!feedbackMessage.trim()) {
+      toast({
+        title: 'Message Required',
+        description: 'Please enter your feedback before submitting.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Here you would normally send to a backend
+    console.log('Feedback submitted:', feedbackMessage);
+    
+    toast({
+      title: 'Feedback Submitted! 💬',
+      description: 'Thank you! We will review your feedback and make improvements.',
+    });
+
+    setFeedbackMessage('');
   };
 
   const groupedRecipes = recipes.reduce((acc, recipe) => {
@@ -540,6 +563,30 @@ const Cooking = () => {
                         </CardContent>
                       </Card>
                     )}
+
+                    <Card className="border-muted">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <MessageSquare className="h-5 w-5" />
+                          Any problems? Chat to us and we will fix it
+                        </CardTitle>
+                        <CardDescription>
+                          Don't like how it's being cooked? Let us know and we'll help improve the instructions
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <Textarea
+                          placeholder="Tell us what's wrong or what you'd like to change about these cooking instructions..."
+                          value={feedbackMessage}
+                          onChange={(e) => setFeedbackMessage(e.target.value)}
+                          className="min-h-[100px]"
+                        />
+                        <Button onClick={handleSubmitFeedback} className="w-full">
+                          <MessageSquare className="mr-2 h-4 w-4" />
+                          Submit Feedback
+                        </Button>
+                      </CardContent>
+                    </Card>
 
                     <Card className="border-primary/20">
                       <CardContent className="py-8 text-center">
