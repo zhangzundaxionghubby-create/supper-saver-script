@@ -41,6 +41,7 @@ const Cooking = () => {
   const [basketItems, setBasketItems] = useState<string[]>([]);
   const [hasAllIngredients, setHasAllIngredients] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [isAmending, setIsAmending] = useState(false);
 
   useEffect(() => {
     const storedRecipes = localStorage.getItem('weeklyPlanRecipes');
@@ -237,7 +238,7 @@ const Cooking = () => {
     );
   };
 
-  const handleSubmitFeedback = () => {
+  const handleSubmitFeedback = async () => {
     if (!feedbackMessage.trim()) {
       toast({
         title: 'Message Required',
@@ -247,15 +248,69 @@ const Cooking = () => {
       return;
     }
 
-    // Here you would normally send to a backend
+    if (!selectedRecipe || !cookingSteps) {
+      toast({
+        title: 'Error',
+        description: 'No cooking instructions to amend.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsAmending(true);
     console.log('Feedback submitted:', feedbackMessage);
     
-    toast({
-      title: 'Feedback Submitted! 💬',
-      description: 'Thank you! We will review your feedback and make improvements.',
-    });
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/amend-cooking-steps`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            recipeName: selectedRecipe.name,
+            ingredients: selectedRecipe.ingredients,
+            servings: selectedRecipe.servings,
+            currentInstructions: cookingSteps.instructions,
+            feedback: feedbackMessage,
+          }),
+        }
+      );
 
-    setFeedbackMessage('');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to amend cooking steps');
+      }
+
+      const data = await response.json();
+      setCookingSteps(data);
+
+      // Update saved steps
+      const savedKey = `${selectedRecipe.name}-${selectedRecipe.day}-${selectedRecipe.mealType}`;
+      const newSavedSteps = {
+        ...savedSteps,
+        [savedKey]: data,
+      };
+      setSavedSteps(newSavedSteps);
+      localStorage.setItem('savedCookingSteps', JSON.stringify(newSavedSteps));
+
+      toast({
+        title: 'Instructions Updated! ✨',
+        description: 'The cooking steps have been amended based on your feedback.',
+      });
+
+      setFeedbackMessage('');
+    } catch (error) {
+      console.error('Error amending cooking steps:', error);
+      toast({
+        title: 'Failed to Update',
+        description: error instanceof Error ? error.message : 'Failed to amend instructions. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsAmending(false);
+    }
   };
 
   const groupedRecipes = recipes.reduce((acc, recipe) => {
@@ -568,22 +623,36 @@ const Cooking = () => {
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <MessageSquare className="h-5 w-5" />
-                          Any problems? Chat to us and we will fix it
+                          Don't like how it's being cooked? Let us fix it
                         </CardTitle>
                         <CardDescription>
-                          Don't like how it's being cooked? Let us know and we'll help improve the instructions
+                          Tell us what you'd like to change and we'll regenerate the cooking instructions
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <Textarea
-                          placeholder="Tell us what's wrong or what you'd like to change about these cooking instructions..."
+                          placeholder="Example: Use less cheese, make it spicier, add more detailed timing, etc..."
                           value={feedbackMessage}
                           onChange={(e) => setFeedbackMessage(e.target.value)}
                           className="min-h-[100px]"
+                          disabled={isAmending}
                         />
-                        <Button onClick={handleSubmitFeedback} className="w-full">
-                          <MessageSquare className="mr-2 h-4 w-4" />
-                          Submit Feedback
+                        <Button 
+                          onClick={handleSubmitFeedback} 
+                          className="w-full"
+                          disabled={isAmending || !feedbackMessage.trim()}
+                        >
+                          {isAmending ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Regenerating Instructions...
+                            </>
+                          ) : (
+                            <>
+                              <MessageSquare className="mr-2 h-4 w-4" />
+                              Amend Instructions
+                            </>
+                          )}
                         </Button>
                       </CardContent>
                     </Card>
