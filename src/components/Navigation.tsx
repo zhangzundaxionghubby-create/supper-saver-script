@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ChefHat, ShoppingCart, UtensilsCrossed, Flame, Target } from 'lucide-react';
+import { ChefHat, ShoppingCart, UtensilsCrossed, Flame, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Navigation = () => {
@@ -10,7 +10,7 @@ const Navigation = () => {
     { path: '/shopping-list', icon: ShoppingCart, label: 'Shopping List' },
     { path: '/basket', icon: UtensilsCrossed, label: 'Basket' },
     { path: '/cooking', icon: Flame, label: 'Cooking' },
-    { path: '/calorie', icon: Target, label: 'Calorie' },
+    { path: '/nutrients', icon: Activity, label: 'Nutrients' },
   ];
 
   return (
@@ -27,7 +27,7 @@ const Navigation = () => {
           <div className="hidden md:flex items-center gap-1">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = location.pathname === item.path;
+              const isActive = location.pathname === item.path || (item.path === '/nutrients' && location.pathname === '/calorie');
 
               return (
                 <Link
@@ -50,7 +50,7 @@ const Navigation = () => {
           <div className="md:hidden flex gap-2">
             {navItems.slice(1, 4).map((item) => {
               const Icon = item.icon;
-              const isActive = location.pathname === item.path;
+              const isActive = location.pathname === item.path || (item.path === '/nutrients' && location.pathname === '/calorie');
 
               return (
                 <Link

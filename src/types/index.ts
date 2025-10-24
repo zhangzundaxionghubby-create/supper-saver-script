@@ -70,6 +70,23 @@ export interface CookedMeal {
   calories: number;
   protein: number;
   carbs: number;
+  salt?: number;
+  saturatedFat?: number;
+  unsaturatedFat?: number;
+  fibre?: number;
+  vitamins?: {
+    vitaminA?: number;
+    vitaminB1?: number;
+    vitaminB2?: number;
+    vitaminB3?: number;
+    vitaminB6?: number;
+    vitaminB12?: number;
+    vitaminC?: number;
+    vitaminD?: number;
+    vitaminE?: number;
+    vitaminK?: number;
+    folate?: number;
+  };
   cookedAt: string;
 }
 

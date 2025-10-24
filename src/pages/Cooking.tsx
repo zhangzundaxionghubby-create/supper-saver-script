@@ -208,6 +208,24 @@ const Cooking = () => {
       calories: selectedRecipe.calories,
       protein: selectedRecipe.protein,
       carbs: selectedRecipe.carbs,
+      // Placeholder estimates for additional nutrients
+      salt: Math.round(selectedRecipe.calories * 0.002 * 10) / 10, // ~0.2% of calories as salt
+      saturatedFat: Math.round(selectedRecipe.calories * 0.05 * 10) / 10, // ~5% of calories as sat fat
+      unsaturatedFat: Math.round(selectedRecipe.calories * 0.08 * 10) / 10, // ~8% of calories as unsat fat
+      fibre: Math.round(selectedRecipe.carbs * 0.15 * 10) / 10, // ~15% of carbs as fibre
+      vitamins: {
+        vitaminA: Math.round(Math.random() * 500 + 200),
+        vitaminC: Math.round(Math.random() * 50 + 20),
+        vitaminD: Math.round(Math.random() * 10 + 2),
+        vitaminE: Math.round(Math.random() * 8 + 3),
+        vitaminK: Math.round(Math.random() * 80 + 20),
+        vitaminB1: Math.round(Math.random() * 1.5 * 10) / 10,
+        vitaminB2: Math.round(Math.random() * 1.5 * 10) / 10,
+        vitaminB3: Math.round(Math.random() * 15 * 10) / 10,
+        vitaminB6: Math.round(Math.random() * 2 * 10) / 10,
+        vitaminB12: Math.round(Math.random() * 3 * 10) / 10,
+        folate: Math.round(Math.random() * 200 + 100),
+      },
       cookedAt: new Date().toISOString(),
     };
 
@@ -216,7 +234,7 @@ const Cooking = () => {
 
     toast({
       title: 'Meal Marked as Cooked! 🎉',
-      description: `${selectedRecipe.name} has been added to your calorie tracker and ingredients removed from basket.`,
+      description: `${selectedRecipe.name} has been added to your nutrient tracker and ingredients removed from basket.`,
     });
   };
 

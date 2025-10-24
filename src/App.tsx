@@ -8,7 +8,7 @@ import Recipe from "./pages/Recipe";
 import ShoppingList from "./pages/ShoppingList";
 import Basket from "./pages/Basket";
 import Cooking from "./pages/Cooking";
-import Calorie from "./pages/Calorie";
+import Nutrients from "./pages/Nutrients";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,7 +25,8 @@ const App = () => (
           <Route path="/shopping-list" element={<ShoppingList />} />
           <Route path="/basket" element={<Basket />} />
           <Route path="/cooking" element={<Cooking />} />
-          <Route path="/calorie" element={<Calorie />} />
+          <Route path="/nutrients" element={<Nutrients />} />
+          <Route path="/calorie" element={<Nutrients />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
