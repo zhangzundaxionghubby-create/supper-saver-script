@@ -9,8 +9,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ChefHat, Sparkles, Calendar, ArrowRight, GripVertical, Trash2, Search, List, Heart } from 'lucide-react';
+import { Loader2, ChefHat, Sparkles, Calendar, ArrowRight, GripVertical, Trash2, Search, List, Heart, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { Badge } from '@/components/ui/badge';
 
 interface Recipe {
   name: string;
@@ -57,6 +58,9 @@ const Recipe = () => {
     numberOfRecipes: '7',
     numberOfPeople: '2',
   });
+
+  const [allergiesInput, setAllergiesInput] = useState('');
+  const [allergiesTags, setAllergiesTags] = useState<string[]>([]);
 
   // Load all recipes from database
   useEffect(() => {
@@ -192,6 +196,25 @@ const Recipe = () => {
     }
   };
 
+  const handleAddAllergy = () => {
+    const trimmed = allergiesInput.trim();
+    if (trimmed && !allergiesTags.includes(trimmed)) {
+      setAllergiesTags([...allergiesTags, trimmed]);
+      setAllergiesInput('');
+    }
+  };
+
+  const handleRemoveAllergy = (allergyToRemove: string) => {
+    setAllergiesTags(allergiesTags.filter(tag => tag !== allergyToRemove));
+  };
+
+  const handleAllergiesKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddAllergy();
+    }
+  };
+
   const handleAIGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsGenerating(true);
@@ -211,6 +234,7 @@ const Recipe = () => {
             dietaryRestrictions: aiParams.dietaryRestrictions,
             numberOfRecipes: parseInt(aiParams.numberOfRecipes),
             numberOfPeople: parseInt(aiParams.numberOfPeople),
+            allergiesConditions: allergiesTags,
           }),
         }
       );
@@ -505,6 +529,46 @@ const Recipe = () => {
                             <SelectItem value="dairy-free">Dairy-Free</SelectItem>
                           </SelectContent>
                         </Select>
+                      </div>
+
+                      <div className="space-y-2 md:col-span-2 lg:col-span-3">
+                        <Label htmlFor="allergies">Allergies / Conditions</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="allergies"
+                            placeholder="Type and press Enter to add (e.g., peanuts, shellfish, diabetes)"
+                            value={allergiesInput}
+                            onChange={(e) => setAllergiesInput(e.target.value)}
+                            onKeyDown={handleAllergiesKeyDown}
+                          />
+                          <Button 
+                            type="button" 
+                            variant="secondary" 
+                            onClick={handleAddAllergy}
+                            disabled={!allergiesInput.trim()}
+                          >
+                            Add
+                          </Button>
+                        </div>
+                        {allergiesTags.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-3">
+                            {allergiesTags.map((tag) => (
+                              <Badge key={tag} variant="secondary" className="gap-1 px-3 py-1">
+                                {tag}
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveAllergy(tag)}
+                                  className="ml-1 hover:text-destructive"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Add any allergies or medical conditions to consider
+                        </p>
                       </div>
 
                       <div className="space-y-2">

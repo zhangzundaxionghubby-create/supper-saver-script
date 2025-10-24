@@ -18,10 +18,11 @@ serve(async (req) => {
       dietaryRestrictions, 
       numberOfRecipes, 
       numberOfPeople, 
-      mealsPerDay 
+      mealsPerDay,
+      allergiesConditions = []
     } = await req.json();
 
-    console.log("Generating recipes with params:", { protein, carbs, calories, dietaryRestrictions, numberOfRecipes, numberOfPeople, mealsPerDay });
+    console.log("Generating recipes with params:", { protein, carbs, calories, dietaryRestrictions, numberOfRecipes, numberOfPeople, mealsPerDay, allergiesConditions });
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -59,12 +60,15 @@ DO NOT include cooking instructions or steps. Only generate the recipe name, bas
 - Target calories per serving: approximately ${calories}
 - Dietary restrictions: ${dietaryRestrictions || 'None'}
 - Number of people: ${numberOfPeople}
+${allergiesConditions.length > 0 ? `- IMPORTANT - Allergies/Conditions to avoid: ${allergiesConditions.join(', ')}` : ''}
 
 IMPORTANT CALORIE CALCULATION INSTRUCTIONS:
 1. List ALL ingredients with specific quantities (e.g., "200g chicken breast", "1 tbsp olive oil", "100g rice")
 2. Calculate calories based on standard nutritional values for each ingredient
 3. Sum up all calories and divide by the number of servings
 4. Ensure the calculation is realistic and matches the ingredients
+
+${allergiesConditions.length > 0 ? `CRITICAL: Ensure NO ingredients contain or trigger these allergies/conditions: ${allergiesConditions.join(', ')}. Double-check every ingredient.` : ''}
 
 Generate a wide variety of recipes for different meal types (breakfast, lunch, dinner).
 Do NOT assign days or meal types - just generate the recipes.
