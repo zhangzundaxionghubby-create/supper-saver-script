@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ChefHat, Sparkles, Calendar, ArrowRight, GripVertical, Trash2, Search, List } from 'lucide-react';
+import { Loader2, ChefHat, Sparkles, Calendar, ArrowRight, GripVertical, Trash2, Search, List, Heart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Recipe {
@@ -317,6 +317,15 @@ const Recipe = () => {
     });
   };
 
+  const handleLikeRecipe = (recipeName: string) => {
+    setActiveTab('plan');
+    setSearchQuery(''); // Clear search to show all recipes in plan tab
+    toast({
+      title: 'Ready to Plan!',
+      description: `"${recipeName}" is ready to drag into your weekly calendar.`,
+    });
+  };
+
   const handleProceedToShopping = () => {
     if (assignedRecipes.length === 0) {
       toast({
@@ -595,24 +604,35 @@ const Recipe = () => {
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Protein:</span>
-                              <span className="font-medium">{recipe.protein}g</span>
+                          <div className="space-y-3">
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Protein:</span>
+                                <span className="font-medium">{recipe.protein}g</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Carbs:</span>
+                                <span className="font-medium">{recipe.carbs}g</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Calories:</span>
+                                <span className="font-medium">{recipe.calories}</span>
+                              </div>
+                              <div className="pt-1">
+                                <p className="text-xs text-muted-foreground">
+                                  {recipe.ingredients.length} ingredients
+                                </p>
+                              </div>
                             </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Carbs:</span>
-                              <span className="font-medium">{recipe.carbs}g</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Calories:</span>
-                              <span className="font-medium">{recipe.calories}</span>
-                            </div>
-                            <div className="pt-2">
-                              <p className="text-xs text-muted-foreground">
-                                {recipe.ingredients.length} ingredients
-                              </p>
-                            </div>
+                            <Button
+                              onClick={() => handleLikeRecipe(recipe.name)}
+                              variant="default"
+                              size="sm"
+                              className="w-full gap-2"
+                            >
+                              <Heart className="h-4 w-4" />
+                              I Like This
+                            </Button>
                           </div>
                         </CardContent>
                       </Card>
