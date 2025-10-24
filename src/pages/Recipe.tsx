@@ -46,7 +46,11 @@ const Recipe = () => {
   const [manualRecipe, setManualRecipe] = useState({
     name: '',
     details: '',
+    dietaryRestrictions: 'none',
   });
+
+  const [manualAllergies, setManualAllergies] = useState('');
+  const [manualAllergiesTags, setManualAllergiesTags] = useState<string[]>([]);
 
   const [isParsingRecipe, setIsParsingRecipe] = useState(false);
 
@@ -180,7 +184,9 @@ const Recipe = () => {
       setManualRecipe({
         name: '',
         details: '',
+        dietaryRestrictions: 'none',
       });
+      setManualAllergiesTags([]);
       
       // Switch to list tab to see the added recipe
       setActiveTab('list');
@@ -212,6 +218,25 @@ const Recipe = () => {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleAddAllergy();
+    }
+  };
+
+  const handleAddManualAllergy = () => {
+    const trimmed = manualAllergies.trim();
+    if (trimmed && !manualAllergiesTags.includes(trimmed)) {
+      setManualAllergiesTags([...manualAllergiesTags, trimmed]);
+      setManualAllergies('');
+    }
+  };
+
+  const handleRemoveManualAllergy = (allergyToRemove: string) => {
+    setManualAllergiesTags(manualAllergiesTags.filter(tag => tag !== allergyToRemove));
+  };
+
+  const handleManualAllergiesKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddManualAllergy();
     }
   };
 
@@ -270,8 +295,15 @@ const Recipe = () => {
     }
   };
 
-  const handleDragStart = (recipe: Recipe) => {
+  const handleDragStart = (recipe: Recipe, fromSlot?: { day: string; mealType: string }) => {
     setDraggedRecipe(recipe);
+    
+    // If dragging from a slot, remove it from that slot
+    if (fromSlot) {
+      setAssignedRecipes(assignedRecipes.filter(
+        r => !(r.day === fromSlot.day && r.mealType === fromSlot.mealType)
+      ));
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -639,6 +671,67 @@ const Recipe = () => {
                     </div>
 
                     <div className="space-y-2">
+                      <Label htmlFor="manualDietary">Dietary Restrictions</Label>
+                      <Select
+                        value={manualRecipe.dietaryRestrictions}
+                        onValueChange={(value) => setManualRecipe({ ...manualRecipe, dietaryRestrictions: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select restrictions" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          <SelectItem value="halal">Halal</SelectItem>
+                          <SelectItem value="kosher">Kosher</SelectItem>
+                          <SelectItem value="vegetarian">Vegetarian</SelectItem>
+                          <SelectItem value="vegan">Vegan</SelectItem>
+                          <SelectItem value="gluten-free">Gluten-Free</SelectItem>
+                          <SelectItem value="dairy-free">Dairy-Free</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="manualAllergies">Allergies / Conditions</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="manualAllergies"
+                          placeholder="Type and press Enter to add"
+                          value={manualAllergies}
+                          onChange={(e) => setManualAllergies(e.target.value)}
+                          onKeyDown={handleManualAllergiesKeyDown}
+                        />
+                        <Button 
+                          type="button" 
+                          variant="secondary" 
+                          onClick={handleAddManualAllergy}
+                          disabled={!manualAllergies.trim()}
+                        >
+                          Add
+                        </Button>
+                      </div>
+                      {manualAllergiesTags.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {manualAllergiesTags.map((tag) => (
+                            <Badge key={tag} variant="secondary" className="gap-1 px-3 py-1">
+                              {tag}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveManualAllergy(tag)}
+                                className="ml-1 hover:text-destructive"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Add any allergies or medical conditions to consider
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
                       <Label htmlFor="recipeDetails">Recipe Details</Label>
                       <Textarea
                         id="recipeDetails"
@@ -824,7 +917,11 @@ const Recipe = () => {
                                 }`}
                               >
                                 {assigned ? (
-                                  <div className="relative group">
+                                  <div 
+                                    className="relative group cursor-grab active:cursor-grabbing"
+                                    draggable
+                                    onDragStart={() => handleDragStart(assigned, { day, mealType })}
+                                  >
                                     <p className="text-xs font-medium line-clamp-2">{assigned.name}</p>
                                     <p className="text-xs text-muted-foreground">{assigned.calories} cal</p>
                                     <button
