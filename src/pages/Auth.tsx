@@ -5,9 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Mail } from "lucide-react";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -70,20 +68,6 @@ const Auth = () => {
     }
   };
 
-  const handleSocialAuth = async (provider: "google" | "facebook") => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: `${window.location.origin}/`,
-        },
-      });
-      if (error) throw error;
-    } catch (error: any) {
-      console.error("Social auth error:", error);
-      toast.error(error.message || `Failed to sign in with ${provider}`);
-    }
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary/20 to-background p-4">
@@ -125,33 +109,6 @@ const Auth = () => {
               {loading ? "Please wait..." : isLogin ? "Sign In" : "Sign Up"}
             </Button>
           </form>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <Separator />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Button
-              variant="outline"
-              onClick={() => handleSocialAuth("google")}
-              disabled={loading}
-            >
-              <Mail className="mr-2 h-4 w-4" />
-              Google
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => handleSocialAuth("facebook")}
-              disabled={loading}
-            >
-              Facebook
-            </Button>
-          </div>
 
           <div className="text-center text-sm">
             {isLogin ? "Don't have an account? " : "Already have an account? "}
