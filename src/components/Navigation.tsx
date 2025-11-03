@@ -1,9 +1,45 @@
-import { Link, useLocation } from 'react-router-dom';
-import { ChefHat, ShoppingCart, UtensilsCrossed, Flame, Activity } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ChefHat, ShoppingCart, UtensilsCrossed, Flame, Activity, LogOut, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useState, useEffect } from 'react';
 
 const Navigation = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [userEmail, setUserEmail] = useState<string>("");
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserEmail(session?.user?.email || "");
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUserEmail(session?.user?.email || "");
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error("Failed to log out");
+    } else {
+      toast.success("Logged out successfully");
+      navigate("/auth");
+    }
+  };
 
   const navItems = [
     { path: '/recipe', icon: ChefHat, label: 'Recipe' },
@@ -24,27 +60,45 @@ const Navigation = () => {
             <span className="text-xl font-bold">Fridgly</span>
           </Link>
 
-          <div className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path || (item.path === '/nutrients' && location.pathname === '/calorie');
+          <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path || (item.path === '/nutrients' && location.pathname === '/calorie');
 
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={cn(
-                    'flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all',
-                    isActive
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={cn(
+                      'flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all',
+                      isActive
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <User className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>{userEmail}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           <div className="md:hidden flex gap-2">

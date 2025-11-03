@@ -9,7 +9,9 @@ import ShoppingList from "./pages/ShoppingList";
 import Basket from "./pages/Basket";
 import Cooking from "./pages/Cooking";
 import Nutrients from "./pages/Nutrients";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -20,13 +22,14 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/recipe" element={<Recipe />} />
-          <Route path="/shopping-list" element={<ShoppingList />} />
-          <Route path="/basket" element={<Basket />} />
-          <Route path="/cooking" element={<Cooking />} />
-          <Route path="/nutrients" element={<Nutrients />} />
-          <Route path="/calorie" element={<Nutrients />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          <Route path="/recipe" element={<ProtectedRoute><Recipe /></ProtectedRoute>} />
+          <Route path="/shopping-list" element={<ProtectedRoute><ShoppingList /></ProtectedRoute>} />
+          <Route path="/basket" element={<ProtectedRoute><Basket /></ProtectedRoute>} />
+          <Route path="/cooking" element={<ProtectedRoute><Cooking /></ProtectedRoute>} />
+          <Route path="/nutrients" element={<ProtectedRoute><Nutrients /></ProtectedRoute>} />
+          <Route path="/calorie" element={<ProtectedRoute><Nutrients /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
