@@ -14,6 +14,117 @@ export type Database = {
   }
   public: {
     Tables: {
+      cooked_meals: {
+        Row: {
+          calories: number
+          carbs: number
+          cooked_at: string
+          created_at: string
+          fibre: number
+          id: string
+          meal_name: string
+          meal_type: string
+          protein: number
+          salt: number
+          saturated_fat: number
+          unsaturated_fat: number
+          user_id: string
+          vitamin_a: number
+          vitamin_c: number
+          vitamin_d: number
+          vitamin_e: number
+        }
+        Insert: {
+          calories?: number
+          carbs?: number
+          cooked_at?: string
+          created_at?: string
+          fibre?: number
+          id?: string
+          meal_name: string
+          meal_type: string
+          protein?: number
+          salt?: number
+          saturated_fat?: number
+          unsaturated_fat?: number
+          user_id: string
+          vitamin_a?: number
+          vitamin_c?: number
+          vitamin_d?: number
+          vitamin_e?: number
+        }
+        Update: {
+          calories?: number
+          carbs?: number
+          cooked_at?: string
+          created_at?: string
+          fibre?: number
+          id?: string
+          meal_name?: string
+          meal_type?: string
+          protein?: number
+          salt?: number
+          saturated_fat?: number
+          unsaturated_fat?: number
+          user_id?: string
+          vitamin_a?: number
+          vitamin_c?: number
+          vitamin_d?: number
+          vitamin_e?: number
+        }
+        Relationships: []
+      }
+      meal_plans: {
+        Row: {
+          created_at: string
+          id: string
+          meal_data: Json
+          updated_at: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          meal_data?: Json
+          updated_at?: string
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          meal_data?: Json
+          updated_at?: string
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          id: string
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          id: string
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
       recipes: {
         Row: {
           calories: number
@@ -26,6 +137,7 @@ export type Database = {
           prep_time: string | null
           protein: number
           servings: number
+          user_id: string | null
         }
         Insert: {
           calories?: number
@@ -38,6 +150,7 @@ export type Database = {
           prep_time?: string | null
           protein?: number
           servings?: number
+          user_id?: string | null
         }
         Update: {
           calories?: number
@@ -50,6 +163,40 @@ export type Database = {
           prep_time?: string | null
           protein?: number
           servings?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_preferences: {
+        Row: {
+          allergies: string[] | null
+          created_at: string
+          dietary_restrictions: string[] | null
+          target_calories: number | null
+          target_carbs: number | null
+          target_protein: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allergies?: string[] | null
+          created_at?: string
+          dietary_restrictions?: string[] | null
+          target_calories?: number | null
+          target_carbs?: number | null
+          target_protein?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allergies?: string[] | null
+          created_at?: string
+          dietary_restrictions?: string[] | null
+          target_calories?: number | null
+          target_carbs?: number | null
+          target_protein?: number | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
