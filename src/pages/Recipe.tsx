@@ -115,6 +115,12 @@ const Recipe = () => {
   };
 
   const saveRecipeToDatabase = async (recipe: Recipe) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error('You must be logged in to save recipes');
+    }
+
     const { error } = await supabase
       .from('recipes')
       .insert({
@@ -126,6 +132,7 @@ const Recipe = () => {
         carbs: recipe.carbs,
         calories: recipe.calories,
         ingredients: recipe.ingredients,
+        user_id: user.id,
       });
 
     if (error) {
