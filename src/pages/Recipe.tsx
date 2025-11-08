@@ -249,20 +249,6 @@ const Recipe = () => {
 
   const handleAIGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Check if user is logged in first
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      toast({
-        title: 'Authentication Required',
-        description: 'Please log in to generate recipes.',
-        variant: 'destructive',
-      });
-      navigate('/auth');
-      return;
-    }
-
     setIsGenerating(true);
 
     try {
@@ -297,17 +283,14 @@ const Recipe = () => {
       const data = await response.json();
       console.log('Generated recipes:', data);
       
-      // Save all generated recipes to database
-      for (const recipe of data.recipes) {
-        await saveRecipeToDatabase(recipe);
-      }
-      
-      await loadRecipes();
+      // Add generated recipes to the current list (no database saving)
+      setAllRecipes(prev => [...data.recipes, ...prev]);
+      setFilteredRecipes(prev => [...data.recipes, ...prev]);
       setActiveTab('list');
       
       toast({
         title: 'Recipes Generated!',
-        description: `Successfully created ${data.recipes.length} recipes and saved to your list!`,
+        description: `Successfully created ${data.recipes.length} recipes!`,
       });
     } catch (error) {
       console.error('Error generating recipes:', error);
