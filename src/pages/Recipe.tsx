@@ -249,9 +249,24 @@ const Recipe = () => {
 
   const handleAIGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check if user is logged in first
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please log in to generate recipes.',
+        variant: 'destructive',
+      });
+      navigate('/auth');
+      return;
+    }
+
     setIsGenerating(true);
 
     try {
+      console.log('Starting recipe generation...');
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-recipes`,
         {
@@ -271,12 +286,16 @@ const Recipe = () => {
         }
       );
 
+      console.log('Response status:', response.status);
+
       if (!response.ok) {
         const error = await response.json();
+        console.error('Edge function error:', error);
         throw new Error(error.error || 'Failed to generate recipes');
       }
 
       const data = await response.json();
+      console.log('Generated recipes:', data);
       
       // Save all generated recipes to database
       for (const recipe of data.recipes) {
