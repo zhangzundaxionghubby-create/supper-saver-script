@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, ChefHat } from 'lucide-react';
+import { Plus, Trash2, ChefHat, TrendingUp, Activity } from 'lucide-react';
 import Navigation from '@/components/Navigation';
-import { format } from 'date-fns';
+import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+import { Progress } from '@/components/ui/progress';
 import {
   Dialog,
   DialogContent,
@@ -49,6 +51,14 @@ const MealPlanning = () => {
     carbs: '',
   });
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // Weekly nutrient targets (recommended daily intake * 7)
+  const weeklyTargets = {
+    calories: 14000, // 2000 per day * 7
+    protein: 350,    // 50g per day * 7
+    carbs: 1750,     // 250g per day * 7
+  };
 
   // Load meal plans from database
   useEffect(() => {
@@ -212,6 +222,37 @@ const MealPlanning = () => {
     return Object.keys(mealPlanData).map(dateStr => new Date(dateStr));
   };
 
+  // Calculate weekly nutrients from current week's meal plan
+  const getWeeklyNutrients = () => {
+    if (!selectedDate) return { calories: 0, protein: 0, carbs: 0 };
+
+    const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Monday
+    const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
+
+    let totalCalories = 0;
+    let totalProtein = 0;
+    let totalCarbs = 0;
+
+    Object.keys(mealPlanData).forEach(dateStr => {
+      const date = new Date(dateStr);
+      if (date >= weekStart && date <= weekEnd) {
+        mealPlanData[dateStr].forEach(meal => {
+          totalCalories += meal.calories || 0;
+          totalProtein += meal.protein || 0;
+          totalCarbs += meal.carbs || 0;
+        });
+      }
+    });
+
+    return {
+      calories: totalCalories,
+      protein: totalProtein,
+      carbs: totalCarbs,
+    };
+  };
+
+  const weeklyNutrients = getWeeklyNutrients();
+
   const mealTypes = [
     { value: 'breakfast', label: 'Breakfast' },
     { value: 'lunch', label: 'Lunch' },
@@ -226,11 +267,86 @@ const MealPlanning = () => {
       <Navigation />
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-2">Meal Planning</h1>
-          <p className="text-muted-foreground">
-            Select a date and plan your meals for each day
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold text-foreground mb-2">Meal Planning</h1>
+              <p className="text-muted-foreground">
+                Select a date and plan your meals for each day
+              </p>
+            </div>
+            <Button onClick={() => navigate('/nutrients')} variant="outline">
+              <Activity className="h-4 w-4 mr-2" />
+              View Nutrients
+            </Button>
+          </div>
         </div>
+
+        {/* Weekly Nutrient Summary */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Weekly Nutrient Summary
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Week of {selectedDate && format(startOfWeek(selectedDate, { weekStartsOn: 1 }), 'MMM d')} - {selectedDate && format(endOfWeek(selectedDate, { weekStartsOn: 1 }), 'MMM d, yyyy')}
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-3 gap-6">
+              {/* Calories */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="font-medium">Calories</span>
+                  <span className="text-muted-foreground">
+                    {weeklyNutrients.calories} / {weeklyTargets.calories}
+                  </span>
+                </div>
+                <Progress 
+                  value={(weeklyNutrients.calories / weeklyTargets.calories) * 100} 
+                  className="h-2"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {Math.round((weeklyNutrients.calories / weeklyTargets.calories) * 100)}% of target
+                </p>
+              </div>
+
+              {/* Protein */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="font-medium">Protein (g)</span>
+                  <span className="text-muted-foreground">
+                    {weeklyNutrients.protein} / {weeklyTargets.protein}
+                  </span>
+                </div>
+                <Progress 
+                  value={(weeklyNutrients.protein / weeklyTargets.protein) * 100} 
+                  className="h-2"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {Math.round((weeklyNutrients.protein / weeklyTargets.protein) * 100)}% of target
+                </p>
+              </div>
+
+              {/* Carbs */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="font-medium">Carbs (g)</span>
+                  <span className="text-muted-foreground">
+                    {weeklyNutrients.carbs} / {weeklyTargets.carbs}
+                  </span>
+                </div>
+                <Progress 
+                  value={(weeklyNutrients.carbs / weeklyTargets.carbs) * 100} 
+                  className="h-2"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {Math.round((weeklyNutrients.carbs / weeklyTargets.carbs) * 100)}% of target
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Calendar Section */}
