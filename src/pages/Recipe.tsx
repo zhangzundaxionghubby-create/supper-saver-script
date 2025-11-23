@@ -33,11 +33,6 @@ interface Recipe {
   ingredients: string[];
 }
 
-interface AssignedRecipe extends Recipe {
-  day: string;
-  mealType: string;
-}
-
 interface DayMeal {
   id: string;
   name: string;
@@ -50,9 +45,6 @@ interface DayMeal {
 interface MealPlanData {
   [date: string]: DayMeal[];
 }
-
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const MEAL_TYPES = ['Breakfast', 'Lunch', 'Dinner'];
 
 const Recipe = () => {
   const navigate = useNavigate();
@@ -71,13 +63,6 @@ const Recipe = () => {
     protein: '',
     carbs: '',
   });
-
-  // Weekly nutrient targets (recommended daily intake * 7)
-  const weeklyTargets = {
-    calories: 14000, // 2000 per day * 7
-    protein: 350,    // 50g per day * 7
-    carbs: 1750,     // 250g per day * 7
-  };
 
   const [manualRecipe, setManualRecipe] = useState({
     name: '',
@@ -107,64 +92,6 @@ const Recipe = () => {
     loadMealPlans();
   }, []);
 
-  const loadRecipes = async () => {
-    const { data, error } = await supabase
-      .from('recipes')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error loading recipes:', error);
-      toast({
-        title: 'Failed to Load Recipes',
-        description: 'Could not load your recipe list.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const recipes: Recipe[] = data.map(r => ({
-      name: r.name,
-      servings: r.servings,
-      prepTime: r.prep_time || '',
-      cookTime: r.cook_time || '',
-      protein: r.protein,
-      carbs: r.carbs,
-      calories: r.calories,
-      ingredients: r.ingredients as string[],
-    }));
-
-    setAllRecipes(recipes);
-    setFilteredRecipes(recipes);
-  };
-
-  const saveRecipeToDatabase = async (recipe: Recipe) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error('You must be logged in to save recipes');
-    }
-
-    const { error } = await supabase
-      .from('recipes')
-      .insert({
-        name: recipe.name,
-        servings: recipe.servings,
-        prep_time: recipe.prepTime,
-        cook_time: recipe.cookTime,
-        protein: recipe.protein,
-        carbs: recipe.carbs,
-        calories: recipe.calories,
-        ingredients: recipe.ingredients,
-        user_id: user.id,
-      });
-
-    if (error) {
-      console.error('Error saving recipe:', error);
-      throw error;
-    }
-  };
-
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsParsingRecipe(true);
@@ -191,25 +118,9 @@ const Recipe = () => {
 
       const parsedRecipe = await response.json();
       
-      // Create a full recipe object
-      const newRecipe: Recipe = {
-        name: manualRecipe.name,
-        servings: parsedRecipe.servings,
-        prepTime: parsedRecipe.prepTime,
-        cookTime: parsedRecipe.cookTime,
-        protein: parsedRecipe.protein,
-        carbs: parsedRecipe.carbs,
-        calories: parsedRecipe.calories,
-        ingredients: parsedRecipe.ingredients,
-      };
-
-      // Save to database
-      await saveRecipeToDatabase(newRecipe);
-      await loadRecipes();
-      
       toast({
-        title: 'Recipe Added!',
-        description: `${manualRecipe.name} has been saved to your recipe list.`,
+        title: 'Recipe Parsed!',
+        description: `${manualRecipe.name} has been parsed successfully.`,
       });
 
       setManualRecipe({
@@ -219,8 +130,6 @@ const Recipe = () => {
       });
       setManualAllergiesTags([]);
       
-      // Switch to list tab to see the added recipe
-      setActiveTab('list');
     } catch (error) {
       console.error('Error parsing recipe:', error);
       toast({
@@ -326,160 +235,6 @@ const Recipe = () => {
     }
   };
 
-  const handleDragStart = (recipe: Recipe, fromSlot?: { day: string; mealType: string }) => {
-    setDraggedRecipe(recipe);
-    
-    // If dragging from a slot, remove it from that slot
-    if (fromSlot) {
-      setAssignedRecipes(assignedRecipes.filter(
-        r => !(r.day === fromSlot.day && r.mealType === fromSlot.mealType)
-      ));
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = (day: string, mealType: string) => {
-    if (!draggedRecipe) return;
-
-    const existingIndex = assignedRecipes.findIndex(
-      r => r.day === day && r.mealType === mealType
-    );
-
-    const newAssignment: AssignedRecipe = { ...draggedRecipe, day, mealType };
-
-    if (existingIndex >= 0) {
-      const updated = [...assignedRecipes];
-      updated[existingIndex] = newAssignment;
-      setAssignedRecipes(updated);
-    } else {
-      setAssignedRecipes([...assignedRecipes, newAssignment]);
-    }
-
-    toast({
-      title: 'Recipe Assigned!',
-      description: `${draggedRecipe.name} → ${day} ${mealType}`,
-    });
-
-    setDraggedRecipe(null);
-  };
-
-  const handleRemoveAssignment = (day: string, mealType: string) => {
-    setAssignedRecipes(assignedRecipes.filter(r => !(r.day === day && r.mealType === mealType)));
-    toast({
-      title: 'Recipe Removed',
-      description: 'Recipe removed from your weekly plan.',
-    });
-  };
-
-  const handleClearMealPlan = () => {
-    setAssignedRecipes([]);
-    localStorage.removeItem('weeklyPlanRecipes');
-    localStorage.removeItem('shoppingIngredients');
-    toast({
-      title: 'Meal Plan Cleared',
-      description: 'Your weekly meal plan has been cleared.',
-    });
-  };
-
-  const handleDeleteRecipe = async (recipeName: string) => {
-    const { error } = await supabase
-      .from('recipes')
-      .delete()
-      .eq('name', recipeName);
-
-    if (error) {
-      console.error('Error deleting recipe:', error);
-      toast({
-        title: 'Failed to Delete',
-        description: 'Could not delete the recipe.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    await loadRecipes();
-    toast({
-      title: 'Recipe Deleted',
-      description: 'Recipe removed from your list.',
-    });
-  };
-
-  const handleLikeRecipe = (recipeName: string) => {
-    // Find the recipe
-    const recipe = allRecipes.find(r => r.name === recipeName);
-    if (!recipe) return;
-
-    // Find the first available meal slot (going through days and meal types)
-    let assigned = false;
-    for (const day of DAYS) {
-      for (const mealType of MEAL_TYPES) {
-        const existingAssignment = assignedRecipes.find(
-          r => r.day === day && r.mealType === mealType
-        );
-        
-        if (!existingAssignment) {
-          // Found an empty slot, assign the recipe here
-          const newAssignment: AssignedRecipe = { ...recipe, day, mealType };
-          setAssignedRecipes([...assignedRecipes, newAssignment]);
-          
-          toast({
-            title: 'Recipe Added to Meal Plan!',
-            description: `${recipeName} added to ${day} ${mealType}. View it in the Meal Planning tab.`,
-          });
-          
-          assigned = true;
-          break;
-        }
-      }
-      if (assigned) break;
-    }
-
-    if (!assigned) {
-      toast({
-        title: 'Meal Plan Full',
-        description: 'All meal slots are filled. Go to Meal Planning to make space or replace a recipe.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleNextStep = () => {
-    if (activeTab === 'generate') {
-      setActiveTab('list');
-    } else if (activeTab === 'list') {
-      setActiveTab('plan');
-    } else if (activeTab === 'plan') {
-      handleProceedToShopping();
-    }
-  };
-
-  const getNextStepLabel = () => {
-    if (activeTab === 'generate') return 'Next: View Recipe List';
-    if (activeTab === 'list') return 'Next: Plan Meals';
-    return 'Next: Shopping List';
-  };
-
-  const handleProceedToShopping = () => {
-    if (assignedRecipes.length === 0) {
-      toast({
-        title: 'No Recipes Assigned',
-        description: 'Please drag at least one recipe to your weekly plan.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const allIngredients = assignedRecipes.flatMap(recipe => recipe.ingredients);
-    localStorage.setItem('weeklyPlanRecipes', JSON.stringify(assignedRecipes));
-    localStorage.setItem('shoppingIngredients', JSON.stringify(allIngredients));
-    
-    navigate('/shopping-list');
-  };
-
-  // Meal Planning Functions
   const loadMealPlans = async () => {
     try {
       const { data, error } = await supabase
@@ -632,35 +387,6 @@ const Recipe = () => {
     return Object.keys(mealPlanData).map(dateStr => new Date(dateStr));
   };
 
-  const getWeeklyNutrients = () => {
-    if (!selectedDate) return { calories: 0, protein: 0, carbs: 0 };
-
-    const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
-    const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
-
-    let totalCalories = 0;
-    let totalProtein = 0;
-    let totalCarbs = 0;
-
-    Object.keys(mealPlanData).forEach(dateStr => {
-      const date = new Date(dateStr);
-      if (date >= weekStart && date <= weekEnd) {
-        mealPlanData[dateStr].forEach(meal => {
-          totalCalories += meal.calories || 0;
-          totalProtein += meal.protein || 0;
-          totalCarbs += meal.carbs || 0;
-        });
-      }
-    });
-
-    return {
-      calories: totalCalories,
-      protein: totalProtein,
-      carbs: totalCarbs,
-    };
-  };
-
-  const weeklyNutrients = getWeeklyNutrients();
   const mealsForDay = getMealsForSelectedDate();
   const mealTypes = [
     { value: 'breakfast', label: 'Breakfast' },
