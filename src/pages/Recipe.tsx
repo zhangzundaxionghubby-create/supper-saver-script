@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ChefHat, Sparkles, Calendar as CalendarIcon, Plus, X, Trash2 } from 'lucide-react';
+import { Loader2, ChefHat, Sparkles, Calendar as CalendarIcon, Plus, X, Trash2, Heart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
@@ -48,9 +48,10 @@ interface MealPlanData {
 
 const Recipe = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
-  const [activeTab, setActiveTab] = useState('generate');
+  const [activeTab, setActiveTab] = useState((location.state as any)?.activeTab || 'generate');
   
   // Meal Planning State
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -63,6 +64,8 @@ const Recipe = () => {
     protein: '',
     carbs: '',
   });
+  const [likedRecipes, setLikedRecipes] = useState<Recipe[]>([]);
+  const [draggedRecipe, setDraggedRecipe] = useState<Recipe | null>(null);
 
   const [manualRecipe, setManualRecipe] = useState({
     name: '',
@@ -90,7 +93,15 @@ const Recipe = () => {
   // Load meal plans
   useEffect(() => {
     loadMealPlans();
+    loadLikedRecipes();
   }, []);
+
+  const loadLikedRecipes = () => {
+    const saved = localStorage.getItem('likedRecipes');
+    if (saved) {
+      setLikedRecipes(JSON.parse(saved));
+    }
+  };
 
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -385,6 +396,54 @@ const Recipe = () => {
 
   const getDaysWithMeals = () => {
     return Object.keys(mealPlanData).map(dateStr => new Date(dateStr));
+  };
+
+  const handleDragStart = (recipe: Recipe) => {
+    setDraggedRecipe(recipe);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!draggedRecipe || !selectedDate) return;
+
+    const meal: DayMeal = {
+      id: `${Date.now()}-${Math.random()}`,
+      name: draggedRecipe.name,
+      mealType: 'lunch', // default, can be changed later
+      calories: draggedRecipe.calories,
+      protein: draggedRecipe.protein,
+      carbs: draggedRecipe.carbs,
+    };
+
+    const dateKey = format(selectedDate, 'yyyy-MM-dd');
+    const updatedData = {
+      ...mealPlanData,
+      [dateKey]: [...(mealPlanData[dateKey] || []), meal],
+    };
+
+    setMealPlanData(updatedData);
+    saveMealPlans(updatedData);
+
+    toast({
+      title: 'Recipe Added!',
+      description: `${draggedRecipe.name} added to ${format(selectedDate, 'MMMM d, yyyy')}`,
+    });
+
+    setDraggedRecipe(null);
+  };
+
+  const removeLikedRecipe = (recipeName: string) => {
+    const updated = likedRecipes.filter(r => r.name !== recipeName);
+    setLikedRecipes(updated);
+    localStorage.setItem('likedRecipes', JSON.stringify(updated));
+    toast({
+      title: 'Recipe Removed',
+      description: 'Removed from liked recipes',
+    });
   };
 
   const mealsForDay = getMealsForSelectedDate();
@@ -708,13 +767,17 @@ const Recipe = () => {
 
           {/* Tab 2: Meal Planning */}
           <TabsContent value="plan" className="space-y-6">
-            <div className="grid lg:grid-cols-2 gap-8">
+            <div className="grid lg:grid-cols-3 gap-6">
               {/* Calendar Section */}
               <Card>
                 <CardHeader>
                   <CardTitle>Select Date</CardTitle>
                 </CardHeader>
-                <CardContent className="flex justify-center">
+                <CardContent 
+                  className="flex justify-center"
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                >
                   <Calendar
                     mode="single"
                     selected={selectedDate}
@@ -730,8 +793,8 @@ const Recipe = () => {
                 </CardContent>
               </Card>
 
-              {/* Meals for Selected Date */}
-              <Card>
+              {/* Meals for Selected Date - Bottom */}
+              <Card className="lg:col-span-2 lg:row-span-2">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
                     <CardTitle>
@@ -740,7 +803,7 @@ const Recipe = () => {
                         : 'Select a date'}
                     </CardTitle>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {mealsForDay.length} meal{mealsForDay.length !== 1 ? 's' : ''} planned
+                      Drop recipes here or add manually
                     </p>
                   </div>
                   <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -835,49 +898,110 @@ const Recipe = () => {
                   </Dialog>
                 </CardHeader>
                 <CardContent>
-                  {!selectedDate ? (
+                  <div
+                    className="min-h-[300px] rounded-lg border-2 border-dashed border-muted-foreground/25 p-4"
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
+                  >
+                    {!selectedDate ? (
+                      <div className="flex flex-col items-center justify-center h-full py-12 text-muted-foreground">
+                        <ChefHat className="h-16 w-16 mb-4 opacity-50" />
+                        <p>Select a date to view and add meals</p>
+                      </div>
+                    ) : mealsForDay.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full py-12 text-muted-foreground">
+                        <ChefHat className="h-16 w-16 mb-4 opacity-50" />
+                        <p>No meals planned for this day</p>
+                        <p className="text-sm">Drag recipes here or click "Add Meal"</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {mealsForDay.map((meal) => (
+                          <div
+                            key={meal.id}
+                            className="flex items-center justify-between p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors"
+                          >
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-semibold text-foreground">
+                                  {meal.name}
+                                </h3>
+                                <Badge variant="secondary" className="text-xs">
+                                  {meal.mealType}
+                                </Badge>
+                              </div>
+                              {(meal.calories || meal.protein || meal.carbs) && (
+                                <div className="flex gap-3 text-sm text-muted-foreground">
+                                  {meal.calories && <span>{meal.calories} cal</span>}
+                                  {meal.protein && <span>{meal.protein}g protein</span>}
+                                  {meal.carbs && <span>{meal.carbs}g carbs</span>}
+                                </div>
+                              )}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deleteMeal(meal.id)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Liked Recipes Sidebar */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Heart className="h-5 w-5 text-primary" />
+                    Liked Recipes
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    {likedRecipes.length} recipe{likedRecipes.length !== 1 ? 's' : ''}
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  {likedRecipes.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                      <ChefHat className="h-16 w-16 mb-4 opacity-50" />
-                      <p>Select a date to view and add meals</p>
-                    </div>
-                  ) : mealsForDay.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                      <ChefHat className="h-16 w-16 mb-4 opacity-50" />
-                      <p>No meals planned for this day</p>
-                      <p className="text-sm">Click "Add Meal" to get started</p>
+                      <Heart className="h-12 w-12 mb-3 opacity-50" />
+                      <p className="text-center text-sm">
+                        No liked recipes yet.<br />Generate and like recipes to add them here.
+                      </p>
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      {mealsForDay.map((meal) => (
+                    <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                      {likedRecipes.map((recipe, idx) => (
                         <div
-                          key={meal.id}
-                          className="flex items-center justify-between p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors"
+                          key={idx}
+                          draggable
+                          onDragStart={() => handleDragStart(recipe)}
+                          className="group relative p-4 rounded-lg border-2 border-border bg-card hover:border-primary hover:bg-accent cursor-move transition-all"
                         >
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-semibold text-foreground">
-                                {meal.name}
-                              </h3>
-                              <Badge variant="secondary" className="text-xs">
-                                {meal.mealType}
-                              </Badge>
-                            </div>
-                            {(meal.calories || meal.protein || meal.carbs) && (
-                              <div className="flex gap-3 text-sm text-muted-foreground">
-                                {meal.calories && <span>{meal.calories} cal</span>}
-                                {meal.protein && <span>{meal.protein}g protein</span>}
-                                {meal.carbs && <span>{meal.carbs}g carbs</span>}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-sm mb-2">{recipe.name}</h4>
+                              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                                <span>{recipe.calories} cal</span>
+                                <span>•</span>
+                                <span>{recipe.protein}g protein</span>
+                                <span>•</span>
+                                <span>{recipe.carbs}g carbs</span>
                               </div>
-                            )}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => removeLikedRecipe(recipe.name)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => deleteMeal(meal.id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
                         </div>
                       ))}
                     </div>
