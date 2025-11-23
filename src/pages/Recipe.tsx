@@ -773,11 +773,7 @@ const Recipe = () => {
                 <CardHeader>
                   <CardTitle>Select Date</CardTitle>
                 </CardHeader>
-                <CardContent 
-                  className="flex justify-center"
-                  onDragOver={handleDragOver}
-                  onDrop={handleDrop}
-                >
+                <CardContent className="flex justify-center">
                   <Calendar
                     mode="single"
                     selected={selectedDate}
@@ -793,126 +789,128 @@ const Recipe = () => {
                 </CardContent>
               </Card>
 
-              {/* Meals for Selected Date - Bottom */}
-              <Card className="lg:col-span-2 lg:row-span-2">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle>
-                      {selectedDate
-                        ? format(selectedDate, 'MMMM d, yyyy')
-                        : 'Select a date'}
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Drop recipes here or add manually
-                    </p>
-                  </div>
-                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button size="sm" disabled={!selectedDate}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Meal
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Add New Meal</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4 mt-4">
-                        <div>
-                          <Label htmlFor="meal-name">Meal Name</Label>
-                          <Input
-                            id="meal-name"
-                            placeholder="e.g., Grilled Chicken Salad"
-                            value={newMeal.name}
-                            onChange={(e) =>
-                              setNewMeal({ ...newMeal, name: e.target.value })
-                            }
-                          />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="meal-type">Meal Type</Label>
-                          <Select
-                            value={newMeal.mealType}
-                            onValueChange={(value) =>
-                              setNewMeal({ ...newMeal, mealType: value })
-                            }
-                          >
-                            <SelectTrigger id="meal-type">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {mealTypes.map((type) => (
-                                <SelectItem key={type.value} value={type.value}>
-                                  {type.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-4">
-                          <div>
-                            <Label htmlFor="calories">Calories</Label>
-                            <Input
-                              id="calories"
-                              type="number"
-                              placeholder="500"
-                              value={newMeal.calories}
-                              onChange={(e) =>
-                                setNewMeal({ ...newMeal, calories: e.target.value })
-                              }
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="protein">Protein (g)</Label>
-                            <Input
-                              id="protein"
-                              type="number"
-                              placeholder="30"
-                              value={newMeal.protein}
-                              onChange={(e) =>
-                                setNewMeal({ ...newMeal, protein: e.target.value })
-                              }
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="carbs">Carbs (g)</Label>
-                            <Input
-                              id="carbs"
-                              type="number"
-                              placeholder="50"
-                              value={newMeal.carbs}
-                              onChange={(e) =>
-                                setNewMeal({ ...newMeal, carbs: e.target.value })
-                              }
-                            />
-                          </div>
-                        </div>
-
-                        <Button onClick={addMeal} className="w-full">
+              {/* Meals for Selected Date - Drop Zone */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle>
+                        {selectedDate
+                          ? format(selectedDate, 'MMMM d, yyyy')
+                          : 'Select a date'}
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Drag recipes here to add
+                      </p>
+                    </div>
+                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" disabled={!selectedDate}>
+                          <Plus className="h-4 w-4 mr-2" />
                           Add Meal
                         </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Add New Meal</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 mt-4">
+                          <div>
+                            <Label htmlFor="meal-name">Meal Name</Label>
+                            <Input
+                              id="meal-name"
+                              placeholder="e.g., Grilled Chicken Salad"
+                              value={newMeal.name}
+                              onChange={(e) =>
+                                setNewMeal({ ...newMeal, name: e.target.value })
+                              }
+                            />
+                          </div>
+
+                          <div>
+                            <Label htmlFor="meal-type">Meal Type</Label>
+                            <Select
+                              value={newMeal.mealType}
+                              onValueChange={(value) =>
+                                setNewMeal({ ...newMeal, mealType: value })
+                              }
+                            >
+                              <SelectTrigger id="meal-type">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {mealTypes.map((type) => (
+                                  <SelectItem key={type.value} value={type.value}>
+                                    {type.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-4">
+                            <div>
+                              <Label htmlFor="calories">Calories</Label>
+                              <Input
+                                id="calories"
+                                type="number"
+                                placeholder="500"
+                                value={newMeal.calories}
+                                onChange={(e) =>
+                                  setNewMeal({ ...newMeal, calories: e.target.value })
+                                }
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="protein">Protein (g)</Label>
+                              <Input
+                                id="protein"
+                                type="number"
+                                placeholder="30"
+                                value={newMeal.protein}
+                                onChange={(e) =>
+                                  setNewMeal({ ...newMeal, protein: e.target.value })
+                                }
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="carbs">Carbs (g)</Label>
+                              <Input
+                                id="carbs"
+                                type="number"
+                                placeholder="50"
+                                value={newMeal.carbs}
+                                onChange={(e) =>
+                                  setNewMeal({ ...newMeal, carbs: e.target.value })
+                                }
+                              />
+                            </div>
+                          </div>
+
+                          <Button onClick={addMeal} className="w-full">
+                            Add Meal
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </CardHeader>
-                <CardContent>
-                  <div
-                    className="min-h-[300px] rounded-lg border-2 border-dashed border-muted-foreground/25 p-4"
-                    onDragOver={handleDragOver}
-                    onDrop={handleDrop}
-                  >
+                <CardContent
+                  className="min-h-[500px]"
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                >
+                  <div className="h-full rounded-lg border-2 border-dashed border-muted-foreground/25 p-4 bg-muted/5">
                     {!selectedDate ? (
-                      <div className="flex flex-col items-center justify-center h-full py-12 text-muted-foreground">
+                      <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-muted-foreground">
                         <ChefHat className="h-16 w-16 mb-4 opacity-50" />
                         <p>Select a date to view and add meals</p>
                       </div>
                     ) : mealsForDay.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-full py-12 text-muted-foreground">
+                      <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-muted-foreground">
                         <ChefHat className="h-16 w-16 mb-4 opacity-50" />
                         <p>No meals planned for this day</p>
-                        <p className="text-sm">Drag recipes here or click "Add Meal"</p>
+                        <p className="text-sm mt-2">Drag recipes here or click "Add Meal"</p>
                       </div>
                     ) : (
                       <div className="space-y-3">
@@ -974,18 +972,18 @@ const Recipe = () => {
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                    <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
                       {likedRecipes.map((recipe, idx) => (
                         <div
                           key={idx}
                           draggable
                           onDragStart={() => handleDragStart(recipe)}
-                          className="group relative p-4 rounded-lg border-2 border-border bg-card hover:border-primary hover:bg-accent cursor-move transition-all"
+                          className="group relative p-3 rounded-lg border-2 border-border bg-card hover:border-primary hover:bg-accent cursor-move transition-all"
                         >
                           <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-sm mb-2">{recipe.name}</h4>
-                              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-sm mb-2 truncate">{recipe.name}</h4>
+                              <div className="flex flex-wrap gap-1 text-xs text-muted-foreground">
                                 <span>{recipe.calories} cal</span>
                                 <span>•</span>
                                 <span>{recipe.protein}g protein</span>
@@ -996,7 +994,7 @@ const Recipe = () => {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
                               onClick={() => removeLikedRecipe(recipe.name)}
                             >
                               <X className="h-4 w-4" />
