@@ -5,15 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Heart, X, ArrowLeft, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Recipe {
   name: string;
@@ -26,19 +17,6 @@ interface Recipe {
   ingredients: string[];
 }
 
-interface DayMeal {
-  id: string;
-  name: string;
-  mealType: string;
-  calories?: number;
-  protein?: number;
-  carbs?: number;
-}
-
-interface MealPlanData {
-  [date: string]: DayMeal[];
-}
-
 const RecipeSwipe = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -47,67 +25,39 @@ const RecipeSwipe = () => {
   
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likedRecipes, setLikedRecipes] = useState<Recipe[]>([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedMealType, setSelectedMealType] = useState('breakfast');
 
   const currentRecipe = recipes[currentIndex];
 
   const handleSwipe = (liked: boolean) => {
     if (liked && currentRecipe) {
-      setLikedRecipes([...likedRecipes, currentRecipe]);
-      setSelectedRecipe(currentRecipe);
-      setIsDialogOpen(true);
-    } else {
-      goToNext();
+      const updatedLiked = [...likedRecipes, currentRecipe];
+      setLikedRecipes(updatedLiked);
+      
+      // Save to localStorage
+      localStorage.setItem('likedRecipes', JSON.stringify(updatedLiked));
+      
+      toast({
+        title: 'Recipe Liked!',
+        description: `${currentRecipe.name} added to your liked recipes. Go to Meal Planning to add it to your calendar.`,
+      });
     }
+    goToNext();
   };
 
   const goToNext = () => {
     if (currentIndex < recipes.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
-      // All recipes reviewed
+      // All recipes reviewed, save liked recipes and navigate
+      localStorage.setItem('likedRecipes', JSON.stringify(likedRecipes));
       toast({
         title: 'All done!',
-        description: `You liked ${likedRecipes.length} recipe${likedRecipes.length !== 1 ? 's' : ''}`,
+        description: `You liked ${likedRecipes.length} recipe${likedRecipes.length !== 1 ? 's' : ''}. Go to Meal Planning to schedule them!`,
       });
-      navigate('/recipe');
+      navigate('/recipe', { state: { activeTab: 'plan' } });
     }
   };
 
-  const addToMealPlan = () => {
-    if (!selectedRecipe) return;
-
-    const dateKey = format(selectedDate, 'yyyy-MM-dd');
-    const existingData = localStorage.getItem('mealPlans');
-    const mealPlanData: MealPlanData = existingData ? JSON.parse(existingData) : {};
-
-    const meal: DayMeal = {
-      id: `${Date.now()}-${Math.random()}`,
-      name: selectedRecipe.name,
-      mealType: selectedMealType,
-      calories: selectedRecipe.calories,
-      protein: selectedRecipe.protein,
-      carbs: selectedRecipe.carbs,
-    };
-
-    const updatedData = {
-      ...mealPlanData,
-      [dateKey]: [...(mealPlanData[dateKey] || []), meal],
-    };
-
-    localStorage.setItem('mealPlans', JSON.stringify(updatedData));
-
-    toast({
-      title: 'Added to meal plan!',
-      description: `${selectedRecipe.name} added to ${format(selectedDate, 'MMMM d, yyyy')}`,
-    });
-
-    setIsDialogOpen(false);
-    goToNext();
-  };
 
   if (!recipes || recipes.length === 0) {
     return (
@@ -216,49 +166,6 @@ const RecipeSwipe = () => {
         </div>
       </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add to Meal Plan</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Date</Label>
-              <input
-                type="date"
-                value={format(selectedDate, 'yyyy-MM-dd')}
-                onChange={(e) => setSelectedDate(new Date(e.target.value))}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Meal Type</Label>
-              <Select value={selectedMealType} onValueChange={setSelectedMealType}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="breakfast">Breakfast</SelectItem>
-                  <SelectItem value="lunch">Lunch</SelectItem>
-                  <SelectItem value="dinner">Dinner</SelectItem>
-                  <SelectItem value="snack">Snack</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={addToMealPlan} className="flex-1">
-                Add to Plan
-              </Button>
-              <Button onClick={() => {
-                setIsDialogOpen(false);
-                goToNext();
-              }} variant="outline">
-                Skip
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
