@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ChefHat, ShoppingCart, UtensilsCrossed, Flame, Activity, LogOut, User, Calendar } from 'lucide-react';
+import { ChefHat, ShoppingCart, UtensilsCrossed, Flame, Activity, LogOut, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -43,7 +43,6 @@ const Navigation = () => {
 
   const navItems = [
     { path: '/recipe', icon: ChefHat, label: 'Recipe' },
-    { path: '/meal-planning', icon: Calendar, label: 'Meal Planning' },
     { path: '/shopping-list', icon: ShoppingCart, label: 'Shopping List' },
     { path: '/basket', icon: UtensilsCrossed, label: 'Basket' },
     { path: '/cooking', icon: Flame, label: 'Cooking' },
