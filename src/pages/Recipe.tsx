@@ -9,12 +9,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ChefHat, Sparkles, Calendar as CalendarIcon, ArrowRight, GripVertical, Trash2, Search, List, Heart, X, Plus, TrendingUp, Activity } from 'lucide-react';
+import { Loader2, ChefHat, Sparkles, Calendar as CalendarIcon, Plus, X, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
-import { format, startOfWeek, endOfWeek } from 'date-fns';
-import { Progress } from '@/components/ui/progress';
+import { format } from 'date-fns';
 import {
   Dialog,
   DialogContent,
@@ -59,11 +58,6 @@ const Recipe = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
-  const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
-  const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [assignedRecipes, setAssignedRecipes] = useState<AssignedRecipe[]>([]);
-  const [draggedRecipe, setDraggedRecipe] = useState<Recipe | null>(null);
   const [activeTab, setActiveTab] = useState('generate');
   
   // Meal Planning State
@@ -108,23 +102,10 @@ const Recipe = () => {
   const [allergiesInput, setAllergiesInput] = useState('');
   const [allergiesTags, setAllergiesTags] = useState<string[]>([]);
 
-  // Load all recipes from database
+  // Load meal plans
   useEffect(() => {
-    loadRecipes();
     loadMealPlans();
   }, []);
-
-  // Filter recipes based on search
-  useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredRecipes(allRecipes);
-    } else {
-      const filtered = allRecipes.filter(recipe =>
-        recipe.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setFilteredRecipes(filtered);
-    }
-  }, [searchQuery, allRecipes]);
 
   const loadRecipes = async () => {
     const { data, error } = await supabase
@@ -326,15 +307,13 @@ const Recipe = () => {
       const data = await response.json();
       console.log('Generated recipes:', data);
       
-      // Add generated recipes to the current list (no database saving)
-      setAllRecipes(prev => [...data.recipes, ...prev]);
-      setFilteredRecipes(prev => [...data.recipes, ...prev]);
-      setActiveTab('list');
-      
       toast({
         title: 'Recipes Generated!',
         description: `Successfully created ${data.recipes.length} recipes!`,
       });
+
+      // Navigate to swipe page with recipes
+      navigate('/recipe-swipe', { state: { recipes: data.recipes } });
     } catch (error) {
       console.error('Error generating recipes:', error);
       toast({
@@ -694,28 +673,20 @@ const Recipe = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8 flex items-start justify-between gap-4">
+        <div className="mb-8">
           <div>
             <h1 className="text-4xl font-bold mb-2">Recipe Management</h1>
             <p className="text-muted-foreground">
-              Generate recipes, manage your list, and plan your weekly meals
+              Generate recipes and plan your weekly meals
             </p>
           </div>
-          <Button onClick={handleNextStep} size="lg" className="flex-shrink-0">
-            {getNextStepLabel()}
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl grid-cols-3">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
             <TabsTrigger value="generate" className="gap-2">
               <Sparkles className="h-4 w-4" />
               Generate Recipes
-            </TabsTrigger>
-            <TabsTrigger value="list" className="gap-2">
-              <List className="h-4 w-4" />
-              Recipe List ({allRecipes.length})
             </TabsTrigger>
             <TabsTrigger value="plan" className="gap-2">
               <CalendarIcon className="h-4 w-4" />
@@ -1009,95 +980,7 @@ const Recipe = () => {
             </Tabs>
           </TabsContent>
 
-          {/* Tab 2: Recipe List */}
-          <TabsContent value="list" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Your Recipe Collection</CardTitle>
-                <CardDescription>
-                  All your generated recipes in one place. Search and manage your collection.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-6">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search recipes..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9"
-                    />
-                  </div>
-                </div>
-
-                {filteredRecipes.length === 0 ? (
-                  <div className="text-center py-12">
-                    <p className="text-muted-foreground">
-                      {searchQuery ? 'No recipes found matching your search.' : 'No recipes yet. Generate some recipes to get started!'}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {filteredRecipes.map((recipe, index) => (
-                      <Card key={index} className="hover:shadow-lg transition-shadow">
-                        <CardHeader>
-                          <div className="flex items-start justify-between">
-                            <CardTitle className="text-lg line-clamp-2">{recipe.name}</CardTitle>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteRecipe(recipe.name)}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          <CardDescription>
-                            {recipe.servings} servings • {recipe.prepTime || 'N/A'} prep • {recipe.cookTime || 'N/A'} cook
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-3">
-                            <div className="space-y-2">
-                              <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Protein:</span>
-                                <span className="font-medium">{recipe.protein}g</span>
-                              </div>
-                              <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Carbs:</span>
-                                <span className="font-medium">{recipe.carbs}g</span>
-                              </div>
-                              <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Calories:</span>
-                                <span className="font-medium">{recipe.calories}</span>
-                              </div>
-                              <div className="pt-1">
-                                <p className="text-xs text-muted-foreground">
-                                  {recipe.ingredients.length} ingredients
-                                </p>
-                              </div>
-                            </div>
-                            <Button
-                              onClick={() => handleLikeRecipe(recipe.name)}
-                              variant="default"
-                              size="sm"
-                              className="w-full gap-2"
-                            >
-                              <Heart className="h-4 w-4" />
-                              I Like This
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Tab 3: Meal Planning */}
+          {/* Tab 2: Meal Planning */}
           <TabsContent value="plan" className="space-y-6">
             <div className="grid lg:grid-cols-2 gap-8">
               {/* Calendar Section */}
